@@ -26,13 +26,15 @@ HTTP GET and POST to download and upload package archives.
 Various pages
 -------------
 
+.. code-block:: text
+
 GET /
 GET /package/{name}
 
 Upload and download
 -------------------
 
+.. code-block:: text
+
 GET /package/{name}-{version}.tar.gz
 POST /package/{name}-{version}.tar.gz
-
-mys run

@@ -140,7 +140,7 @@ def main(argv: [string]):
     port = u32(args.value_of("--port"))
     server.listen(port)
 
-    print(f"Listening for clients on port {port}")
+    print(f"Listening for clients on port {port}.")
 
     while True:
         client = server.accept()
