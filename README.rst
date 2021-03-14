@@ -1,6 +1,8 @@
 Website
 =======
 
+The Mys programming language website and package registry.
+
 .. code-block:: text
 
    $ mys run
