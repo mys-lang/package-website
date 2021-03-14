@@ -1,6 +1,14 @@
 Website
 =======
 
+.. code-block:: text
+
+   $ mys run
+   Listening for clients on port 8000.
+
+Brainstorming
+-------------
+
 - User account.
 - Packages database.
 - REST API.
