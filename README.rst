@@ -11,14 +11,28 @@ The Mys programming language website and package registry.
 Brainstorming
 -------------
 
-- User account.
-- Packages database.
-- REST API.
-- HTML.
-- Serve everything on port 80.
+HTTP GET and POST to download and upload package archives.
+
+.. code-block:: text
+
+   -- {root}
+      +-- website.sqlite
+      +-- package/
+          +-- os-0.3.0.tar.gz
+          +-- os-0.4.0.tar.gz
+          +-- random-1.4.0.tar.gz
+          +-- sqlite-0.10.0.tar.gz
+
+Various pages
+-------------
 
 GET /
-GET /api/package/{name}-{version}.tar.gz
-POST /api/package/{name}-{version}.tar.gz
+GET /package/{name}
+
+Upload and download
+-------------------
+
+GET /package/{name}-{version}.tar.gz
+POST /package/{name}-{version}.tar.gz
 
 mys run

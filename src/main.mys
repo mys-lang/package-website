@@ -6,6 +6,16 @@ from os import BinaryFile
 class ClientError(Error):
     pass
 
+@enum
+class Status:
+    NotFound = 404
+    MethodNotAllowed = 405
+
+_STATUS_STRINGS: {i64: string} = {
+    i64(Status.NotFound): "Not Found",
+    i64(Status.MethodNotAllowed): "Method Not Allowed"
+}
+
 class HttpClient:
     client: Client
 
@@ -57,23 +67,73 @@ class HttpClient:
         method, path = self.read_request_line()
         headers = self.read_headers()
 
-        # print(f"{method} {path}")
+        if path == "/":
+            self.handle_index(method)
+        elif path.match(re"^/package/[^/]+.tar.gz$") is not None:
+            self.handle_package_archive(method, path, headers)
+        elif path.starts_with("/package/"):
+            self.handle_package(method, path)
+        else:
+            self.send_error(Status.NotFound)
 
-        if method == "GET":
-            if path == "/":
+    def handle_index(self, method: string):
+        match method:
+            case "GET":
                 self.client.write("HTTP/1.1 200 OK\r\n"
                                   "\r\n".to_utf8())
                 self.client.write(BinaryFile("src/static/index.html").read())
-            else:
-                self.client.write("HTTP/1.1 404 Not Found\r\n"
+            case _:
+                self.send_error(Status.MethodNotAllowed)
+
+    def handle_package(self, method: string, path: string):
+        package_name = path.strip_left("/package/")
+
+        match method:
+            case "GET":
+                if package_name in ["os", "random", "sqlite"]:
+                    self.client.write("HTTP/1.1 200 OK\r\n"
+                                      "\r\n".to_utf8())
+                    self.client.write(
+                        "<html>"
+                        f"  <title>{package_name}</title>"
+                        f"   Some information about the {package_name} package."
+                        "</html>".to_utf8())
+                else:
+                    self.send_error(Status.NotFound)
+            case _:
+                self.send_error(Status.MethodNotAllowed)
+
+
+    def handle_package_archive(self,
+                               method: string,
+                               path: string,
+                               headers: {string: string}):
+        path = path.strip_left("/")
+
+        match method:
+            case "GET":
+                data = BinaryFile(path).read()
+                self.client.write("HTTP/1.1 200 OK\r\n"
                                   "\r\n".to_utf8())
-        else:
-            self.client.write("HTTP/1.1 405 Method Not Allowed\r\n"
-                              "\r\n".to_utf8())
+                self.client.write(data)
+            case "POST":
+                data = self.client.read(u32(headers["Content-Length"]))
+                # BinaryFile(path, "w").write(data)
+                self.client.write("HTTP/1.1 200 OK\r\n"
+                                  "\r\n".to_utf8())
+            case _:
+                self.send_error(Status.MethodNotAllowed)
+
+    def send_error(self, status: Status):
+        status_string = _STATUS_STRINGS[i64(status)]
+        self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
+                          "\r\n".to_utf8())
 
 def main(argv: [string]):
     parser = Parser("website")
-    parser.add_option("--port", default="8000")
+    parser.add_option("--port",
+                      default="8000",
+                      help="Port to listen for clients on (default: 8000).")
     args = parser.parse(argv)
 
     server = Server()
