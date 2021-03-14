@@ -2,9 +2,10 @@
 name = "website"
 version = "0.1.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
-description = "Add a short package description here."
+description = "The Mys programming language website."
 
 [dependencies]
 argparse = "*"
 net = "*"
 os = "*"
+sqlite = "*"

@@ -2,6 +2,8 @@ from argparse import Parser
 from net.tcp.server import Server
 from net.tcp.server import Client
 from os import BinaryFile
+from sqlite import Database as SqliteDatabase
+from sqlite import Statement
 
 class ClientError(Error):
     pass
@@ -18,6 +20,7 @@ _STATUS_STRINGS: {i64: string} = {
 
 class HttpClient:
     client: Client
+    database: Database
 
     def read_line(self) -> string:
         line = b""
@@ -90,19 +93,20 @@ class HttpClient:
 
         match method:
             case "GET":
-                if package_name in ["os", "random", "sqlite"]:
+                package = self.database.get_package(package_name)
+
+                if package is not None:
                     self.client.write("HTTP/1.1 200 OK\r\n"
                                       "\r\n".to_utf8())
                     self.client.write(
                         "<html>"
-                        f"  <title>{package_name}</title>"
-                        f"   Some information about the {package_name} package."
+                        f"  <title>{package.name}</title>"
+                        f"   Some information about the {package.name} package."
                         "</html>".to_utf8())
                 else:
                     self.send_error(Status.NotFound)
             case _:
                 self.send_error(Status.MethodNotAllowed)
-
 
     def handle_package_archive(self,
                                method: string,
@@ -129,12 +133,51 @@ class HttpClient:
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
 
+class Package:
+    name: string
+
+class Database:
+    _database: SqliteDatabase
+    _get_package_statement: Statement
+
+    def __init__(self):
+        self._database = SqliteDatabase("website.sqlite")
+
+        try:
+            self._database.execute("CREATE TABLE packages(name)")
+            self._database.execute("INSERT INTO packages VALUES('os')")
+            self._database.execute("INSERT INTO packages VALUES('random')")
+            self._database.execute("INSERT INTO packages VALUES('sqlite')")
+        except:
+            pass
+
+        statement = self._database.prepare("SELECT COUNT(*) FROM packages")
+
+        if statement.fetch():
+            print("Number of packages:", statement.column_int(0))
+
+        self._get_package = self._database.prepare(
+            "SELECT * FROM packages WHERE name == ?")
+
+    def get_package(self, name: string) -> Package:
+        self._get_package.bind_string(1, name)
+
+        if not self._get_package.fetch():
+            return None
+
+        package = Package(self._get_package.column_string(0))
+        self._get_package.fetch()
+
+        return package
+
 def main(argv: [string]):
     parser = Parser("website")
     parser.add_option("--port",
                       default="8000",
                       help="Port to listen for clients on (default: 8000).")
     args = parser.parse(argv)
+
+    database = Database()
 
     server = Server()
     port = u32(args.value_of("--port"))
@@ -146,7 +189,7 @@ def main(argv: [string]):
         client = server.accept()
 
         try:
-            HttpClient(client).run()
+            HttpClient(client, database).run()
         except:
             pass
 
