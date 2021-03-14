@@ -1,0 +1,93 @@
+from argparse import Parser
+from net.tcp.server import Server
+from net.tcp.server import Client
+from os import BinaryFile
+
+class ClientError(Error):
+    pass
+
+class HttpClient:
+    client: Client
+
+    def read_line(self) -> string:
+        line = b""
+
+        while True:
+            byte = self.client.read(1)
+
+            if len(byte) != 1:
+                raise ClientError()
+
+            line += byte
+
+            if len(line) < 2:
+                continue
+
+            if line[-2] == u8('\r') and line[-1] == u8('\n'):
+                break
+
+        return string(line)[:-2]
+
+    def read_request_line(self) -> (string, string):
+        line = self.read_line()
+        mo = line.match(re"^(\w+) (.+) HTTP/1.1$")
+
+        if mo is None:
+            return None
+
+        return (mo.group(1), mo.group(2))
+
+    def read_headers(self) -> {string: string}:
+        headers: {string: string} = {}
+
+        while True:
+            line = self.read_line()
+
+            if len(line) == 0:
+                break
+
+            mo = line.match(re"^([^:]+): (.*)$")
+
+            if mo is not None:
+                headers[mo.group(1)] = mo.group(2)
+
+        return headers
+
+    def run(self):
+        method, path = self.read_request_line()
+        headers = self.read_headers()
+
+        # print(f"{method} {path}")
+
+        if method == "GET":
+            if path == "/":
+                self.client.write("HTTP/1.1 200 OK\r\n"
+                                  "\r\n".to_utf8())
+                self.client.write(BinaryFile("src/static/index.html").read())
+            else:
+                self.client.write("HTTP/1.1 404 Not Found\r\n"
+                                  "\r\n".to_utf8())
+        else:
+            self.client.write("HTTP/1.1 405 Method Not Allowed\r\n"
+                              "\r\n".to_utf8())
+
+def main(argv: [string]):
+    parser = Parser("website")
+    parser.add_option("--port", default="8000")
+    args = parser.parse(argv)
+
+    server = Server()
+    port = u32(args.value_of("--port"))
+    server.listen(port)
+
+    print(f"Listening for clients on port {port}")
+
+    while True:
+        client = server.accept()
+
+        try:
+            HttpClient(client).run()
+        except:
+            pass
+
+        client.disconnect()
