@@ -28,13 +28,13 @@ Various pages
 
 .. code-block:: text
 
-GET /
-GET /package/{name}
+   GET /
+   GET /package/{name}
 
 Upload and download
 -------------------
 
 .. code-block:: text
 
-GET /package/{name}-{version}.tar.gz
-POST /package/{name}-{version}.tar.gz
+   GET /package/{name}-{version}.tar.gz
+   POST /package/{name}-{version}.tar.gz
