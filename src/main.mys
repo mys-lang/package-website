@@ -140,7 +140,7 @@ class HttpClient:
                 self.client.write(data)
             case "POST":
                 data = self.client.read(u32(headers["Content-Length"]))
-                # BinaryFile(path, "w").write(data)
+                BinaryFile(path, "w").write(data)
                 self.client.write("HTTP/1.1 200 OK\r\n"
                                   "\r\n".to_utf8())
             case _:
