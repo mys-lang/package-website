@@ -1,6 +1,7 @@
 from argparse import Parser
 from net.tcp.server import Server
 from net.tcp.server import Client
+from os import mkdir
 from os import BinaryFile
 from .database import Database
 from .database import Package
@@ -139,6 +140,13 @@ class HttpClient:
                                   "\r\n".to_utf8())
                 self.client.write(data)
             case "POST":
+                expect = headers.get("Expect", None)
+
+                if expect is not None:
+                    if expect == "100-continue":
+                        self.client.write("HTTP/1.1 100 Continue\r\n"
+                                          "\r\n".to_utf8())
+
                 data = self.client.read(u32(headers["Content-Length"]))
                 BinaryFile(path, "w").write(data)
                 self.client.write("HTTP/1.1 200 OK\r\n"
@@ -170,6 +178,7 @@ def main(argv: [string]):
     _HOST = args.value_of("--host")
 
     database = Database()
+    mkdir("package", exists_ok=True)
 
     server = Server()
     port = u32(args.value_of("--port"))
@@ -182,7 +191,7 @@ def main(argv: [string]):
 
         try:
             HttpClient(client, database).run()
-        except:
-            pass
+        except Error as e:
+            print(e)
 
         client.disconnect()
