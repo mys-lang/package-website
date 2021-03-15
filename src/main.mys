@@ -48,14 +48,14 @@ class HttpClient:
 
         return string(line)[:-2]
 
-    def read_request_line(self) -> (string, string):
+    def read_request_line(self) -> (string, string, string):
         line = self.read_line()
-        mo = line.match(re"^(\w+) (.+) HTTP/1.1$")
+        mo = line.match(re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$")
 
         if mo is None:
             return None
 
-        return (mo.group(1), mo.group(2))
+        return (mo.group(1), mo.group(2), mo.group(3))
 
     def read_headers(self) -> {string: string}:
         headers: {string: string} = {}
@@ -74,10 +74,10 @@ class HttpClient:
         return headers
 
     def run(self):
-        method, path = self.read_request_line()
+        method, path, params = self.read_request_line()
         headers = self.read_headers()
 
-        print(method, path)
+        print(method, path, params)
 
         if path == "/":
             self.handle_index(method)
