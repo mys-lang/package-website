@@ -5,6 +5,7 @@ from os import mkdir
 from os import BinaryFile
 from os import TextFile
 from os import tar
+from os import exists
 from .database import Database
 from .database import Package
 from .database import Release
@@ -14,15 +15,15 @@ class ClientError(Error):
 
 @enum
 class Status:
+    BadRequest = 400
     NotFound = 404
     MethodNotAllowed = 405
 
 _STATUS_STRINGS: {i64: string} = {
+    i64(Status.BadRequest): "Bad Request",
     i64(Status.NotFound): "Not Found",
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
-
-_HOST: string = None
 
 class HttpClient:
     client: Client
@@ -92,7 +93,22 @@ class HttpClient:
             case "GET":
                 self.client.write("HTTP/1.1 200 OK\r\n"
                                   "\r\n".to_utf8())
-                self.client.write(BinaryFile("src/static/index.html").read())
+                packages = ""
+
+                for package_name in self.database.get_packages():
+                    href = f"/package/{package_name}"
+                    packages += ("    <li>"
+                                 f"<a href=\"{href}\">{package_name}</a>"
+                                 "</li>\n")
+
+                self.client.write("<html>\n"
+                                  "  <title>The Mys Programming Language</title>\n"
+                                  "  <h1>Welcome!</h1>\n"
+                                  "  <h3>Packages:</h3>\n"
+                                  "  <ul>\n"
+                                  f"{packages}"
+                                  "  </ul>\n"
+                                  "</html>".to_utf8())
             case _:
                 self.send_error(Status.MethodNotAllowed)
 
@@ -109,10 +125,9 @@ class HttpClient:
                     releases = ""
 
                     for release in package.releases:
-                        href = (f"http://{_HOST}/package/"
-                                f"{package.name}-{release.version}.tar.gz")
+                        href = f"/package/{package.name}-{release.version}.tar.gz"
                         releases += ("    <li>"
-                                     f"<a href=\"{href}\">{release.version}</a>"
+                                     f"<a href=\"{href}\" download>{release.version}</a>"
                                      "</li>\n")
 
                     self.client.write(
@@ -137,17 +152,19 @@ class HttpClient:
 
         match method:
             case "GET":
-                data = BinaryFile(path).read()
-                self.client.write("HTTP/1.1 200 OK\r\n"
-                                  "\r\n".to_utf8())
-                self.client.write(data)
+                if exists(path):
+                    data = BinaryFile(path).read()
+                    self.client.write("HTTP/1.1 200 OK\r\n"
+                                      "\r\n".to_utf8())
+                    self.client.write(data)
+                else:
+                    self.send_error(Status.NotFound)
             case "POST":
-                expect = headers.get("Expect", None)
+                expect = headers.get("Expect", "")
 
-                if expect is not None:
-                    if expect == "100-continue":
-                        self.client.write("HTTP/1.1 100 Continue\r\n"
-                                          "\r\n".to_utf8())
+                if expect == "100-continue":
+                    self.client.write("HTTP/1.1 100 Continue\r\n"
+                                      "\r\n".to_utf8())
 
                 data = self.client.read(u32(headers["Content-Length"]))
                 BinaryFile(path, "w").write(data)
@@ -165,10 +182,6 @@ class HttpClient:
 
 def main(argv: [string]):
     parser = Parser("website")
-    parser.add_option("--host",
-                      short="-h",
-                      default="localhost:8000",
-                      help="Host in website links (default: localhost:8000).")
     parser.add_option("--port",
                       short="-p",
                       default="8000",
@@ -178,8 +191,6 @@ def main(argv: [string]):
                       default=".",
                       help="Storage directory (default: \".\").")
     args = parser.parse(argv)
-
-    _HOST = args.value_of("--host")
 
     database = Database()
     mkdir("package", exists_ok=True)

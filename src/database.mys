@@ -12,6 +12,7 @@ class Release:
 class Database:
     _database: SqliteDatabase
     _get_package: Statement
+    _get_packages: Statement
     _get_releases: Statement
 
     def __init__(self):
@@ -43,6 +44,8 @@ class Database:
 
         self._get_package = self._database.prepare(
             "SELECT * FROM packages WHERE name == ?")
+        self._get_packages = self._database.prepare(
+            "SELECT (name) FROM packages")
         self._get_releases = self._database.prepare(
             "SELECT * FROM releases WHERE package_id == ?")
 
@@ -63,3 +66,11 @@ class Database:
             package.releases += Release(self._get_releases.column_string(2))
 
         return package
+
+    def get_packages(self) -> [string]:
+        packages: [string] = []
+
+        while self._get_packages.fetch():
+            packages += self._get_packages.column_string(0)
+
+        return packages
