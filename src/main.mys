@@ -2,8 +2,9 @@ from argparse import Parser
 from net.tcp.server import Server
 from net.tcp.server import Client
 from os import BinaryFile
-from sqlite import Database as SqliteDatabase
-from sqlite import Statement
+from .database import Database
+from .database import Package
+from .database import Release
 
 class ClientError(Error):
     pass
@@ -17,6 +18,8 @@ _STATUS_STRINGS: {i64: string} = {
     i64(Status.NotFound): "Not Found",
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
+
+_HOST: string = None
 
 class HttpClient:
     client: Client
@@ -70,6 +73,8 @@ class HttpClient:
         method, path = self.read_request_line()
         headers = self.read_headers()
 
+        print(method, path)
+
         if path == "/":
             self.handle_index(method)
         elif path.match(re"^/package/[^/]+.tar.gz$") is not None:
@@ -98,10 +103,23 @@ class HttpClient:
                 if package is not None:
                     self.client.write("HTTP/1.1 200 OK\r\n"
                                       "\r\n".to_utf8())
+                    releases = ""
+
+                    for release in package.releases:
+                        href = (f"http://{_HOST}/package/"
+                                f"{package.name}-{release.version}.tar.gz")
+                        releases += ("    <li>"
+                                     f"<a href=\"{href}\">{release.version}</a>"
+                                     "</li>\n")
+
                     self.client.write(
-                        "<html>"
-                        f"  <title>{package.name}</title>"
-                        f"   Some information about the {package.name} package."
+                        "<html>\n"
+                        f"  <title>{package.name}</title>\n"
+                        f"  <h1>{package.name}</h1>\n"
+                        "  <h3>Releases</h3>\n"
+                        "  <ul>\n"
+                        f"{releases}"
+                        "  </ul>\n"
                         "</html>".to_utf8())
                 else:
                     self.send_error(Status.NotFound)
@@ -133,49 +151,17 @@ class HttpClient:
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
 
-class Package:
-    name: string
-
-class Database:
-    _database: SqliteDatabase
-    _get_package_statement: Statement
-
-    def __init__(self):
-        self._database = SqliteDatabase("website.sqlite")
-
-        try:
-            self._database.execute("CREATE TABLE packages(name)")
-            self._database.execute("INSERT INTO packages VALUES('os')")
-            self._database.execute("INSERT INTO packages VALUES('random')")
-            self._database.execute("INSERT INTO packages VALUES('sqlite')")
-        except:
-            pass
-
-        statement = self._database.prepare("SELECT COUNT(*) FROM packages")
-
-        if statement.fetch():
-            print("Number of packages:", statement.column_int(0))
-
-        self._get_package = self._database.prepare(
-            "SELECT * FROM packages WHERE name == ?")
-
-    def get_package(self, name: string) -> Package:
-        self._get_package.bind_string(1, name)
-
-        if not self._get_package.fetch():
-            return None
-
-        package = Package(self._get_package.column_string(0))
-        self._get_package.fetch()
-
-        return package
-
 def main(argv: [string]):
     parser = Parser("website")
+    parser.add_option("--host",
+                      default="localhost:8000",
+                      help="Host in website links (default: localhost:8000).")
     parser.add_option("--port",
                       default="8000",
                       help="Port to listen for clients on (default: 8000).")
     args = parser.parse(argv)
+
+    _HOST = args.value_of("--host")
 
     database = Database()
 
