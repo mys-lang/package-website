@@ -3,6 +3,8 @@ from net.tcp.server import Server
 from net.tcp.server import Client
 from os import mkdir
 from os import BinaryFile
+from os import TextFile
+from os import tar
 from .database import Database
 from .database import Package
 from .database import Release
@@ -149,6 +151,8 @@ class HttpClient:
 
                 data = self.client.read(u32(headers["Content-Length"]))
                 BinaryFile(path, "w").write(data)
+                tar(path, extract=True)
+                print(TextFile(path[8:-7] + "/package.toml").read())
                 self.client.write("HTTP/1.1 200 OK\r\n"
                                   "\r\n".to_utf8())
             case _:
