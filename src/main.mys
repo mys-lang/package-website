@@ -91,17 +91,17 @@ class HttpClient:
     def handle_index(self, method: string):
         match method:
             case "GET":
-                self.client.write("HTTP/1.1 200 OK\r\n"
-                                  "\r\n".to_utf8())
                 packages = ""
 
                 for package_name in self.database.get_packages():
-                    href = f"/package/{package_name}"
-                    packages += ("    <li>"
-                                 f"<a href=\"{href}\">{package_name}</a>"
-                                 "</li>\n")
+                    packages += (
+                        "    <li>"
+                        f"<a href=\"/package/{package_name}\">{package_name}</a>"
+                        "</li>\n")
 
-                self.client.write("<html>\n"
+                self.client.write("HTTP/1.1 200 OK\r\n"
+                                  "\r\n"
+                                  "<html>\n"
                                   "  <title>The Mys Programming Language</title>\n"
                                   "  <h1>Welcome!</h1>\n"
                                   "  <h3>Packages:</h3>\n"
@@ -120,8 +120,6 @@ class HttpClient:
                 package = self.database.get_package(package_name)
 
                 if package is not None:
-                    self.client.write("HTTP/1.1 200 OK\r\n"
-                                      "\r\n".to_utf8())
                     releases = ""
 
                     for release in package.releases:
@@ -131,6 +129,8 @@ class HttpClient:
                                      "</li>\n")
 
                     self.client.write(
+                        "HTTP/1.1 200 OK\r\n"
+                        "\r\n"
                         "<html>\n"
                         f"  <title>{package.name}</title>\n"
                         f"  <h1>{package.name}</h1>\n"
