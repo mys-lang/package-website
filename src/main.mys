@@ -10,7 +10,7 @@ from .database import Database
 from .database import Package
 from .database import Release
 
-class ClientError(Error):
+class ReadError(Error):
     pass
 
 @enum
@@ -36,7 +36,7 @@ class HttpClient:
             byte = self.client.read(1)
 
             if len(byte) != 1:
-                raise ClientError()
+                raise ReadError()
 
             line += byte
 
