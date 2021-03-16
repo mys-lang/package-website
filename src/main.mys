@@ -81,8 +81,10 @@ class HttpClient:
 
         if path == "/":
             self.handle_index(method)
+        elif path == "/favicon.ico":
+            self.handle_favicon(method)
         elif path.match(re"^/package/[^/]+.tar.gz$") is not None:
-            self.handle_package_archive(method, path, headers)
+            self.handle_package_tar_gz(method, path, headers)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         else:
@@ -95,20 +97,32 @@ class HttpClient:
 
                 for package_name in self.database.get_packages():
                     packages += (
-                        "    <li>"
+                        "      <li>"
                         f"<a href=\"/package/{package_name}\">{package_name}</a>"
                         "</li>\n")
 
+                self.client.write(
+                    "HTTP/1.1 200 OK\r\n"
+                    "\r\n"
+                    "<html>\n"
+                    "  <title>The Mys Programming Language</title>\n"
+                    "  <body>\n"
+                    "    <h1>Welcome!</h1>\n"
+                    "    <h3>Packages</h3>\n"
+                    "    <ul>\n"
+                    f"{packages}"
+                    "    </ul>\n"
+                    "  </body>"
+                    "</html>".to_utf8())
+            case _:
+                self.send_error(Status.MethodNotAllowed)
+
+    def handle_favicon(self, method: string):
+        match method:
+            case "GET":
                 self.client.write("HTTP/1.1 200 OK\r\n"
-                                  "\r\n"
-                                  "<html>\n"
-                                  "  <title>The Mys Programming Language</title>\n"
-                                  "  <h1>Welcome!</h1>\n"
-                                  "  <h3>Packages:</h3>\n"
-                                  "  <ul>\n"
-                                  f"{packages}"
-                                  "  </ul>\n"
-                                  "</html>".to_utf8())
+                                  "\r\n".to_utf8())
+                self.client.write(BinaryFile("favicon.ico").read())
             case _:
                 self.send_error(Status.MethodNotAllowed)
 
@@ -144,10 +158,10 @@ class HttpClient:
             case _:
                 self.send_error(Status.MethodNotAllowed)
 
-    def handle_package_archive(self,
-                               method: string,
-                               path: string,
-                               headers: {string: string}):
+    def handle_package_tar_gz(self,
+                              method: string,
+                              path: string,
+                              headers: {string: string}):
         path = path.strip_left("/")
 
         match method:
