@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import shutil
 import pexpect
@@ -8,6 +10,9 @@ import logging
 
 
 LOGGER = logging.getLogger(__name__)
+
+PORT = 18000
+BASE_URL = f'http://localhost:{PORT}'
 
 
 class Logger:
@@ -39,41 +44,60 @@ class IndexTest(systest.TestCase):
     """
 
     def run(self):
-        response = requests.get("http://localhost:18000/")
+        response = requests.get(BASE_URL)
         self.assert_equal(response.status_code, 200)
         self.assert_in('<title>The Mys Programming Language</title>', response.text)
 
 
-class PackageTest(systest.TestCase):
-    """Get a package page.
+class PackageOsTest(systest.TestCase):
+    """Various package operations and pages.
 
     """
 
     def run(self):
-        response = requests.get("http://localhost:18000/package/os")
+        with open('../os-0.16.0.tar.gz', 'rb') as fin:
+            data = fin.read()
+
+        # Download when not present.
+        response = requests.get(f"{BASE_URL}/package/os-0.16.0.tar.gz")
+        self.assert_not_equal(response.status_code, 200)
+
+        # Upload.
+        response = requests.post(f"{BASE_URL}/package/os-0.16.0.tar.gz",
+                                 data=data)
+        self.assert_equal(response.status_code, 200)
+
+        # Download.
+        response = requests.get(f"{BASE_URL}/package/os-0.16.0.tar.gz")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.content, data)
+
+        # Package page.
+        response = requests.get(f"{BASE_URL}/package/os")
         self.assert_equal(response.status_code, 200)
         self.assert_in('<title>os</title>', response.text)
 
 
 def main():
-    shutil.rmtree('test', ignore_errors=True)
-    os.mkdir('test')
-    os.chdir('test')
+    shutil.rmtree('storage', ignore_errors=True)
+    os.mkdir('storage')
+    os.chdir('storage')
 
     sequencer = systest.setup("Mys website",
                               console_log_level=logging.DEBUG)
 
-    website = pexpect.spawn('../build/speed/app --port 18000',
+    website = pexpect.spawn(f'../../build/speed/app --port {PORT}',
                             logfile=Logger(),
                             encoding='utf-8',
                             codec_errors='replace')
-    website.expect_exact("Listening for clients on port 18000.")
+    website.expect_exact(f"Listening for clients on port {PORT}.")
 
     sequencer.run(
         IndexTest(),
-        PackageTest()
-    )
+        PackageOsTest())
 
+    website.close()
+    website.wait()
     sequencer.report_and_exit()
 
 
