@@ -147,9 +147,10 @@ class HttpClient:
 
                     for release in package.releases:
                         href = f"/package/{package.name}-{release.version}.tar.gz"
-                        releases += ("    <li>"
-                                     f"<a href=\"{href}\" download>{release.version}</a>"
-                                     "</li>\n")
+                        releases += (
+                            "    <li>"
+                            f"<a href=\"{href}\" download>{release.version}</a>"
+                            "</li>\n")
 
                     self.write_response(Status.Ok)
                     self.client.write(
