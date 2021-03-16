@@ -38,18 +38,27 @@ class Logger:
         pass
 
 
-class IndexTest(systest.TestCase):
+class TestCase(systest.TestCase):
+
+    def http_get(self, path):
+        return requests.get(f"{BASE_URL}{path}")
+
+    def http_post(self, path, data):
+        return requests.post(f"{BASE_URL}{path}", data=data)
+
+
+class IndexTest(TestCase):
     """Get index page.
 
     """
 
     def run(self):
-        response = requests.get(BASE_URL)
+        response = self.http_get("/")
         self.assert_equal(response.status_code, 200)
         self.assert_in('<title>The Mys Programming Language</title>', response.text)
 
 
-class PackageOsTest(systest.TestCase):
+class PackageOsTest(TestCase):
     """Various package operations and pages.
 
     """
@@ -59,21 +68,20 @@ class PackageOsTest(systest.TestCase):
             data = fin.read()
 
         # Download when not present.
-        response = requests.get(f"{BASE_URL}/package/os-0.16.0.tar.gz")
-        self.assert_not_equal(response.status_code, 200)
+        response = self.http_get("/package/os-0.16.0.tar.gz")
+        self.assert_equal(response.status_code, 404)
 
         # Upload.
-        response = requests.post(f"{BASE_URL}/package/os-0.16.0.tar.gz",
-                                 data=data)
+        response = self.http_post("/package/os-0.16.0.tar.gz", data)
         self.assert_equal(response.status_code, 200)
 
         # Download.
-        response = requests.get(f"{BASE_URL}/package/os-0.16.0.tar.gz")
+        response = self.http_get("/package/os-0.16.0.tar.gz")
         self.assert_equal(response.status_code, 200)
         self.assert_equal(response.content, data)
 
         # Package page.
-        response = requests.get(f"{BASE_URL}/package/os")
+        response = self.http_get("/package/os")
         self.assert_equal(response.status_code, 200)
         self.assert_in('<title>os</title>', response.text)
 
