@@ -15,7 +15,8 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        pip install mys
+        pip install mys systest pexpect requests
     - name: Test
       run: |
-        mys test
+        mys build
+        python3 test.py
