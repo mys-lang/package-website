@@ -15,11 +15,15 @@ class ReadError(Error):
 
 @enum
 class Status:
+    Continue = 100
+    Ok = 200
     BadRequest = 400
     NotFound = 404
     MethodNotAllowed = 405
 
 _STATUS_STRINGS: {i64: string} = {
+    i64(Status.Continue): "Continue",
+    i64(Status.Ok): "OK",
     i64(Status.BadRequest): "Bad Request",
     i64(Status.NotFound): "Not Found",
     i64(Status.MethodNotAllowed): "Method Not Allowed"
@@ -88,7 +92,7 @@ class HttpClient:
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         else:
-            self.send_error(Status.NotFound)
+            self.write_response(Status.NotFound)
 
     def handle_index(self, method: string):
         match method:
@@ -101,9 +105,8 @@ class HttpClient:
                         f"<a href=\"/package/{package_name}\">{package_name}</a>"
                         "</li>\n")
 
+                self.write_response(Status.Ok)
                 self.client.write(
-                    "HTTP/1.1 200 OK\r\n"
-                    "\r\n"
                     "<html>\n"
                     "  <title>The Mys Programming Language</title>\n"
                     "  <body>\n"
@@ -122,16 +125,15 @@ class HttpClient:
                     "  </body>\n"
                     "</html>".to_utf8())
             case _:
-                self.send_error(Status.MethodNotAllowed)
+                self.write_response(Status.MethodNotAllowed)
 
     def handle_favicon(self, method: string):
         match method:
             case "GET":
-                self.client.write("HTTP/1.1 200 OK\r\n"
-                                  "\r\n".to_utf8())
+                self.write_response(Status.Ok)
                 self.client.write(BinaryFile("favicon.ico").read())
             case _:
-                self.send_error(Status.MethodNotAllowed)
+                self.write_response(Status.MethodNotAllowed)
 
     def handle_package(self, method: string, path: string):
         package_name = path.strip_left("/package/")
@@ -149,9 +151,8 @@ class HttpClient:
                                      f"<a href=\"{href}\" download>{release.version}</a>"
                                      "</li>\n")
 
+                    self.write_response(Status.Ok)
                     self.client.write(
-                        "HTTP/1.1 200 OK\r\n"
-                        "\r\n"
                         "<html>\n"
                         f"  <title>{package.name}</title>\n"
                         f"  <h1>{package.name}</h1>\n"
@@ -161,9 +162,9 @@ class HttpClient:
                         "  </ul>\n"
                         "</html>".to_utf8())
                 else:
-                    self.send_error(Status.NotFound)
+                    self.write_response(Status.NotFound)
             case _:
-                self.send_error(Status.MethodNotAllowed)
+                self.write_response(Status.MethodNotAllowed)
 
     def handle_package_tar_gz(self,
                               method: string,
@@ -175,28 +176,25 @@ class HttpClient:
             case "GET":
                 if exists(path):
                     data = BinaryFile(path).read()
-                    self.client.write("HTTP/1.1 200 OK\r\n"
-                                      "\r\n".to_utf8())
+                    self.write_response(Status.Ok)
                     self.client.write(data)
                 else:
-                    self.send_error(Status.NotFound)
+                    self.write_response(Status.NotFound)
             case "POST":
                 expect = headers.get("Expect", "")
 
                 if expect == "100-continue":
-                    self.client.write("HTTP/1.1 100 Continue\r\n"
-                                      "\r\n".to_utf8())
+                    self.write_response(Status.Continue)
 
                 data = self.client.read(u32(headers["Content-Length"]))
                 BinaryFile(path, "w").write(data)
                 tar(path, extract=True)
                 print(TextFile(path[8:-7] + "/package.toml").read())
-                self.client.write("HTTP/1.1 200 OK\r\n"
-                                  "\r\n".to_utf8())
+                self.write_response(Status.Ok)
             case _:
-                self.send_error(Status.MethodNotAllowed)
+                self.write_response(Status.MethodNotAllowed)
 
-    def send_error(self, status: Status):
+    def write_response(self, status: Status):
         status_string = _STATUS_STRINGS[i64(status)]
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
