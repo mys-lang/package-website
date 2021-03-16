@@ -12,4 +12,4 @@ Run the test suite.
 
 .. code-block:: text
 
-   $ python3 test.py
+   $ (mys build && cd test && python3 test.py)
