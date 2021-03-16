@@ -112,7 +112,7 @@ class HttpClient:
                     "    <ul>\n"
                     f"{packages}"
                     "    </ul>\n"
-                    "  </body>"
+                    "  </body>\n"
                     "</html>".to_utf8())
             case _:
                 self.send_error(Status.MethodNotAllowed)
