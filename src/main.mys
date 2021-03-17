@@ -13,6 +13,7 @@ from .database import Release
 from toml import decode as toml_decode
 from toml import Value as TomlValue
 from fiber import Fiber
+from fiber import Event
 
 class ReadError(Error):
     pass
@@ -220,17 +221,32 @@ class HttpClient:
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
 
-class HttpClientFiber(Fiber):
-    client: Client
+class ClientHandlerFiber(Fiber):
     database: Database
+    event: Event
+    client: Client
+    client_handlers: [ClientHandlerFiber]
+
+    def __init__(self,
+                 database: Database,
+                 client_handlers: [ClientHandlerFiber]):
+        self.database = database
+        self.client_handlers = client_handlers
+        self.event = Event()
+        self.client = None
 
     def run(self):
-        try:
-            HttpClient(self.client, self.database).run()
-        except Error as e:
-            print(e)
+        while True:
+            self.event.wait()
+            self.event.clear()
 
-        self.client.disconnect()
+            try:
+                HttpClient(self.client, self.database).run()
+            except Error as e:
+                print(e)
+
+            self.client.disconnect()
+            self.client_handlers += self
 
 def main(argv: [string]):
     parser = Parser("website")
@@ -247,6 +263,12 @@ def main(argv: [string]):
     database = Database()
     mkdir("package", exists_ok=True)
 
+    client_handlers: [ClientHandlerFiber] = []
+
+    for _ in range(20):
+        client_handlers += ClientHandlerFiber(database, client_handlers)
+        client_handlers[-1].start()
+
     server = Server()
     port = u32(args.value_of("--port"))
     server.listen(port)
@@ -256,4 +278,9 @@ def main(argv: [string]):
     while True:
         client = server.accept()
 
-        HttpClientFiber(client, database).start()
+        if len(client_handlers) > 0:
+            client_handler = client_handlers.pop()
+            client_handler.client = client
+            client_handler.event.set()
+        else:
+            print("No client handler available.")
