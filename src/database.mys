@@ -27,7 +27,8 @@ class Database:
         self._database.execute("CREATE TABLE releases("
                                "release_id INTEGER PRIMARY KEY,"
                                "package_id INTEGER,"
-                               "version TEXT NOT NULL"
+                               "version TEXT NOT NULL,"
+                               "UNIQUE(package_id, version)"
                                ")")
 
         # Dummy data for test.
@@ -53,7 +54,7 @@ class Database:
         self._create_package = self._database.prepare(
             "INSERT INTO packages (name) VALUES(?)")
         self._add_release = self._database.prepare(
-            "INSERT INTO releases (package_id, version) VALUES(?, ?)")
+            "INSERT OR IGNORE INTO releases (package_id, version) VALUES(?, ?)")
 
     def create_package(self, name: string):
         self._create_package.bind_string(1, name)
