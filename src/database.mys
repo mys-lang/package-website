@@ -20,25 +20,16 @@ class Database:
     def __init__(self):
         self._database = SqliteDatabase("website.sqlite")
 
-        self._database.execute("CREATE TABLE packages("
+        self._database.execute("CREATE TABLE IF NOT EXISTS packages("
                                "package_id INTEGER PRIMARY KEY,"
                                "name TEXT NOT NULL UNIQUE"
                                ")")
-        self._database.execute("CREATE TABLE releases("
+        self._database.execute("CREATE TABLE IF NOT EXISTS releases("
                                "release_id INTEGER PRIMARY KEY,"
                                "package_id INTEGER,"
                                "version TEXT NOT NULL,"
                                "UNIQUE(package_id, version)"
                                ")")
-
-        # Dummy data for test.
-        self._database.execute("INSERT INTO packages (name) VALUES('os')")
-        self._database.execute(
-            "INSERT INTO releases (package_id, version) VALUES(1, '0.1.0')")
-        self._database.execute(
-            "INSERT INTO releases (package_id, version) VALUES(1, '0.2.0')")
-        self._database.execute("INSERT INTO packages (name) VALUES('random')")
-        self._database.execute("INSERT INTO packages (name) VALUES('sqlite')")
 
         statement = self._database.prepare("SELECT COUNT(*) FROM packages")
 
