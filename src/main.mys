@@ -12,6 +12,7 @@ from .database import Package
 from .database import Release
 from toml import decode as toml_decode
 from toml import Value as TomlValue
+from fiber import Fiber
 
 class ReadError(Error):
     pass
@@ -215,8 +216,21 @@ class HttpClient:
 
     def write_response(self, status: Status):
         status_string = _STATUS_STRINGS[i64(status)]
+        print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
+
+class HttpClientFiber(Fiber):
+    client: Client
+    database: Database
+
+    def run(self):
+        try:
+            HttpClient(self.client, self.database).run()
+        except Error as e:
+            print(e)
+
+        self.client.disconnect()
 
 def main(argv: [string]):
     parser = Parser("website")
@@ -242,9 +256,4 @@ def main(argv: [string]):
     while True:
         client = server.accept()
 
-        try:
-            HttpClient(client, database).run()
-        except Error as e:
-            print(e)
-
-        client.disconnect()
+        HttpClientFiber(client, database).start()
