@@ -20,12 +20,13 @@ class WebsiteReaderThread(threading.Thread):
     def __init__(self, website):
         super().__init__()
         self.website = website
+        self.daemon = True
 
     def run(self):
         try:
             while True:
                 self.website.readline()
-        except OSError:
+        except:
             pass
 
 
@@ -72,39 +73,37 @@ class IndexTest(TestCase):
         self.assert_in('<title>The Mys Programming Language</title>', response.text)
 
 
-class PackageOsTest(TestCase):
+class PackageTest(TestCase):
     """Various package operations and pages.
 
     """
 
     def run(self):
-        with open('../os-0.16.0.tar.gz', 'rb') as fin:
+        with open('../bar-0.3.0.tar.gz', 'rb') as fin:
             data = fin.read()
 
-        # Package page.
-        response = self.http_get("/package/os")
-        self.assert_equal(response.status_code, 200)
-        self.assert_in('<title>os</title>', response.text)
-        self.assert_not_in('0.16.0', response.text)
+        # Package page does not exist.
+        response = self.http_get("/package/bar")
+        self.assert_equal(response.status_code, 404)
 
         # Download when not present.
-        response = self.http_get("/package/os-0.16.0.tar.gz")
+        response = self.http_get("/package/bar-0.3.0.tar.gz")
         self.assert_equal(response.status_code, 404)
 
         # Upload.
-        response = self.http_post("/package/os-0.16.0.tar.gz", data)
+        response = self.http_post("/package/bar-0.3.0.tar.gz", data)
         self.assert_equal(response.status_code, 200)
 
         # Download.
-        response = self.http_get("/package/os-0.16.0.tar.gz")
+        response = self.http_get("/package/bar-0.3.0.tar.gz")
         self.assert_equal(response.status_code, 200)
         self.assert_equal(response.content, data)
 
         # Package page.
-        response = self.http_get("/package/os")
+        response = self.http_get("/package/bar")
         self.assert_equal(response.status_code, 200)
-        self.assert_in('<title>os</title>', response.text)
-        self.assert_in('0.16.0', response.text)
+        self.assert_in('<title>bar</title>', response.text)
+        self.assert_in('0.3.0', response.text)
 
 
 def main():
@@ -125,7 +124,8 @@ def main():
 
     sequencer.run(
         IndexTest(),
-        PackageOsTest())
+        PackageTest()
+    )
 
     website.close()
     website.wait()

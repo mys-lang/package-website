@@ -11,6 +11,7 @@ class Release:
 
 class Database:
     _database: SqliteDatabase
+    _create_package: Statement
     _get_package: Statement
     _get_packages: Statement
     _get_releases: Statement
@@ -49,8 +50,14 @@ class Database:
             "SELECT (name) FROM packages")
         self._get_releases = self._database.prepare(
             "SELECT * FROM releases WHERE package_id == ?")
+        self._create_package = self._database.prepare(
+            "INSERT INTO packages (name) VALUES(?)")
         self._add_release = self._database.prepare(
             "INSERT INTO releases (package_id, version) VALUES(?, ?)")
+
+    def create_package(self, name: string):
+        self._create_package.bind_string(1, name)
+        self._create_package.execute()
 
     def get_package(self, name: string) -> Package:
         self._get_package.bind_string(1, name)
@@ -78,8 +85,7 @@ class Database:
 
         return packages
 
-    def add_package_release(self, name: string, version: string):
-        package = self.get_package(name)
-        self._add_release.bind_int(1, package.package_id)
+    def add_package_release(self, package_id: i64, version: string):
+        self._add_release.bind_int(1, package_id)
         self._add_release.bind_string(2, version)
         self._add_release.execute()
