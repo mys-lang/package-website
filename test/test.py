@@ -7,12 +7,26 @@ import requests
 import subprocess
 import systest
 import logging
-
+import threading
 
 LOGGER = logging.getLogger(__name__)
 
 PORT = 18000
 BASE_URL = f'http://localhost:{PORT}'
+
+
+class WebsiteReaderThread(threading.Thread):
+
+    def __init__(self, website):
+        super().__init__()
+        self.website = website
+
+    def run(self):
+        try:
+            while True:
+                self.website.readline()
+        except OSError:
+            pass
 
 
 class Logger:
@@ -67,6 +81,12 @@ class PackageOsTest(TestCase):
         with open('../os-0.16.0.tar.gz', 'rb') as fin:
             data = fin.read()
 
+        # Package page.
+        response = self.http_get("/package/os")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('<title>os</title>', response.text)
+        self.assert_not_in('0.16.0', response.text)
+
         # Download when not present.
         response = self.http_get("/package/os-0.16.0.tar.gz")
         self.assert_equal(response.status_code, 404)
@@ -84,6 +104,7 @@ class PackageOsTest(TestCase):
         response = self.http_get("/package/os")
         self.assert_equal(response.status_code, 200)
         self.assert_in('<title>os</title>', response.text)
+        self.assert_in('0.16.0', response.text)
 
 
 def main():
@@ -99,6 +120,8 @@ def main():
                             encoding='utf-8',
                             codec_errors='replace')
     website.expect_exact(f"Listening for clients on port {PORT}.")
+    website_reader_thread = WebsiteReaderThread(website)
+    website_reader_thread.start()
 
     sequencer.run(
         IndexTest(),

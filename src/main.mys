@@ -9,6 +9,8 @@ from os import exists
 from .database import Database
 from .database import Package
 from .database import Release
+from toml import decode as toml_decode
+from toml import Value as TomlValue
 
 class ReadError(Error):
     pass
@@ -190,7 +192,10 @@ class HttpClient:
                 data = self.client.read(u32(headers["Content-Length"]))
                 BinaryFile(path, "w").write(data)
                 tar(path, extract=True)
-                print(TextFile(path[8:-7] + "/package.toml").read())
+                config = toml_decode(TextFile(path[8:-7] + "/package.toml").read())
+                self.database.add_package_release(
+                    config.get("package").get("name").get_string(),
+                    config.get("package").get("version").get_string())
                 self.write_response(Status.Ok)
             case _:
                 self.write_response(Status.MethodNotAllowed)
