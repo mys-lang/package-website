@@ -155,11 +155,20 @@ class HttpClient:
                             f"<a href=\"{href}\" download>{release.version}</a>"
                             "</li>\n")
 
+                    homepage_url = (
+                        f"https://github.com/mys-lang/package-{package.name}")
+                    doc_url = (
+                        f"https://mys-package-{package.name}.readthedocs.io/en/latest")
+
                     self.write_response(Status.Ok)
                     self.client.write(
                         "<html>\n"
                         f"  <title>{package.name}</title>\n"
                         f"  <h1>{package.name}</h1>\n"
+                        f"  Homepage: <a href=\"{homepage_url}\">{homepage_url}</a>\n"
+                        "  <br/>"
+                        "  <br/>"
+                        f"  Documentation: <a href=\"{doc_url}\">{doc_url}</a>\n"
                         "  <h3>Releases</h3>\n"
                         "  <ul>\n"
                         f"{releases}"
