@@ -5,6 +5,8 @@ from os import BinaryFile
 from os import TextFile
 from os import tar
 from os import exists
+from os import mkdir
+from os import system
 from .database import Database
 from .database import Package
 from .database import Release
@@ -35,6 +37,15 @@ _STATUS_STRINGS: {i64: string} = {
 class HttpClient:
     client: Client
     database: Database
+    root_directory: string
+
+    def make_path(self, path: string) -> string:
+        """Prepend the database root directory path to given path. Given path
+        must not start with a slash.
+
+        """
+
+        return f"{self.root_directory}/{path}"
 
     def read_line(self) -> string:
         line = b""
@@ -184,12 +195,13 @@ class HttpClient:
                               path: string,
                               headers: {string: string}):
         name_and_version = path[9:-7]
-        path = self.database.make_path(path[1:])
+        database_path = self.database.make_path(path[1:])
+        fiber_path = self.make_path(path[9:])
 
         match method:
             case "GET":
-                if exists(path):
-                    data = BinaryFile(path).read()
+                if exists(database_path):
+                    data = BinaryFile(database_path).read()
                     self.write_response(Status.Ok)
                     self.client.write(data)
                 else:
@@ -207,9 +219,14 @@ class HttpClient:
                     self.write_response(Status.Continue)
 
                 data = self.client.read(content_length)
-                BinaryFile(path, "w").write(data)
-                tar(path, extract=True)
-                package_toml = TextFile(name_and_version + "/package.toml").read()
+                BinaryFile(fiber_path, "w").write(data)
+                tar(fiber_path,
+                    extract=True,
+                    path=f"{name_and_version}/package.toml",
+                    strip_components=1,
+                    output_directory=self.root_directory)
+                system(f"mv {fiber_path} {database_path}")
+                package_toml = TextFile(self.make_path("package.toml")).read()
                 config = toml_decode(package_toml)
                 package_name = config.get("package").get("name").get_string()
                 package_version = config.get("package").get("version").get_string()
@@ -235,14 +252,18 @@ class ClientHandlerFiber(Fiber):
     event: Event
     client: Client
     client_handlers: [ClientHandlerFiber]
+    root_directory: string
 
     def __init__(self,
                  database: Database,
-                 client_handlers: [ClientHandlerFiber]):
+                 client_handlers: [ClientHandlerFiber],
+                 index: i64):
         self.database = database
         self.client_handlers = client_handlers
+        self.root_directory = f".website/{index}"
         self.event = Event()
         self.client = None
+        mkdir(self.root_directory, exists_ok=True)
 
     def run(self):
         while True:
@@ -250,7 +271,7 @@ class ClientHandlerFiber(Fiber):
             self.event.clear()
 
             try:
-                HttpClient(self.client, self.database).run()
+                HttpClient(self.client, self.database, self.root_directory).run()
             except Error as e:
                 print(e)
 
@@ -273,8 +294,8 @@ def main(argv: [string]):
 
     client_handlers: [ClientHandlerFiber] = []
 
-    for _ in range(20):
-        client_handlers += ClientHandlerFiber(database, client_handlers)
+    for i in range(20):
+        client_handlers += ClientHandlerFiber(database, client_handlers, i)
         client_handlers[-1].start()
 
     server = Server()
