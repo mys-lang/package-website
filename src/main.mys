@@ -286,8 +286,6 @@ def main(argv: [string]):
     while True:
         client = server.accept()
 
-        print("Handlers available:", len(client_handlers))
-
         if len(client_handlers) > 0:
             client_handler = client_handlers.pop()
             client_handler.client = client
