@@ -141,7 +141,7 @@ class HttpClient:
                 self.write_response(Status.MethodNotAllowed)
 
     def handle_package(self, method: string, path: string):
-        package_name = path.strip_left("/package/")
+        package_name = path[9:]
 
         match method:
             case "GET":

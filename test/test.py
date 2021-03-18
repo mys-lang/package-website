@@ -62,8 +62,8 @@ class TestCase(systest.TestCase):
         return requests.post(f"{BASE_URL}{path}", data=data)
 
 
-class IndexTest(TestCase):
-    """Get index page.
+class FreshDatabaseTest(TestCase):
+    """Test with a fresh database.
 
     """
 
@@ -123,7 +123,7 @@ def main():
     website_reader_thread.start()
 
     sequencer.run(
-        IndexTest(),
+        FreshDatabaseTest(),
         PackageTest()
     )
 
