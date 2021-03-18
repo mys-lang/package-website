@@ -1,5 +1,6 @@
 from sqlite import Database as SqliteDatabase
 from sqlite import Statement
+from os import mkdir
 
 class Package:
     package_id: i64
@@ -16,9 +17,13 @@ class Database:
     _get_packages: Statement
     _get_releases: Statement
     _add_release: Statement
+    _root_directory: string
 
-    def __init__(self):
-        self._database = SqliteDatabase("website.sqlite")
+    def __init__(self, root_directory: string):
+        self._root_directory = root_directory
+        mkdir(root_directory, exists_ok=True)
+
+        self._database = SqliteDatabase(self.make_path("website.sqlite"))
 
         self._database.execute("CREATE TABLE IF NOT EXISTS packages("
                                "package_id INTEGER PRIMARY KEY,"
@@ -46,6 +51,16 @@ class Database:
             "INSERT INTO packages (name) VALUES(?)")
         self._add_release = self._database.prepare(
             "INSERT OR IGNORE INTO releases (package_id, version) VALUES(?, ?)")
+
+        mkdir(self.make_path("package"), exists_ok=True)
+
+    def make_path(self, path: string) -> string:
+        """Prepend the database root directory path to given path. Given path
+        must not start with a slash.
+
+        """
+
+        return f"{self._root_directory}/{path}"
 
     def create_package(self, name: string):
         self._create_package.bind_string(1, name)

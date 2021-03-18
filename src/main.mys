@@ -1,12 +1,10 @@
 from argparse import Parser
 from net.tcp.server import Server
 from net.tcp.server import Client
-from os import mkdir
 from os import BinaryFile
 from os import TextFile
 from os import tar
 from os import exists
-from os import rm
 from .database import Database
 from .database import Package
 from .database import Release
@@ -176,7 +174,8 @@ class HttpClient:
                               method: string,
                               path: string,
                               headers: {string: string}):
-        path = path.strip_left("/")
+        name_and_version = path[9:-7]
+        path = self.database.make_path(path[1:])
 
         match method:
             case "GET":
@@ -201,7 +200,8 @@ class HttpClient:
                 data = self.client.read(content_length)
                 BinaryFile(path, "w").write(data)
                 tar(path, extract=True)
-                config = toml_decode(TextFile(path[8:-7] + "/package.toml").read())
+                package_toml = TextFile(name_and_version + "/package.toml").read()
+                config = toml_decode(package_toml)
                 package_name = config.get("package").get("name").get_string()
                 package_version = config.get("package").get("version").get_string()
                 package = self.database.get_package(package_name)
@@ -254,14 +254,13 @@ def main(argv: [string]):
                       short="-p",
                       default="8000",
                       help="Port to listen for clients on (default: 8000).")
-    parser.add_option("--storage-directory",
+    parser.add_option("--database-directory",
                       short="-d",
                       default=".",
-                      help="Storage directory (default: \".\").")
+                      help="Database directory (default: \".\").")
     args = parser.parse(argv)
 
-    database = Database()
-    mkdir("package", exists_ok=True)
+    database = Database(args.value_of("--database-directory"))
 
     client_handlers: [ClientHandlerFiber] = []
 
@@ -277,6 +276,8 @@ def main(argv: [string]):
 
     while True:
         client = server.accept()
+
+        print("Handlers available:", len(client_handlers))
 
         if len(client_handlers) > 0:
             client_handler = client_handlers.pop()

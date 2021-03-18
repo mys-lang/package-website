@@ -79,7 +79,7 @@ class PackageTest(TestCase):
     """
 
     def run(self):
-        with open('../bar-0.3.0.tar.gz', 'rb') as fin:
+        with open('bar-0.3.0.tar.gz', 'rb') as fin:
             data = fin.read()
 
         # Package page does not exist.
@@ -108,13 +108,11 @@ class PackageTest(TestCase):
 
 def main():
     shutil.rmtree('storage', ignore_errors=True)
-    os.mkdir('storage')
-    os.chdir('storage')
 
     sequencer = systest.setup("Mys website",
                               console_log_level=logging.DEBUG)
 
-    website = pexpect.spawn(f'../../build/speed/app --port {PORT}',
+    website = pexpect.spawn(f'../build/speed/app --port {PORT} -d storage',
                             logfile=Logger(),
                             encoding='utf-8',
                             codec_errors='replace')
