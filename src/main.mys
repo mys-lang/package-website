@@ -71,6 +71,8 @@ class HttpClient:
         mo = line.match(re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$")
 
         if mo is None:
+            print("Bad request line:", line)
+
             return None
 
         return (mo.group(1), mo.group(2), mo.group(3))
@@ -92,7 +94,14 @@ class HttpClient:
         return headers
 
     def run(self):
-        method, path, params = self.read_request_line()
+        request = self.read_request_line()
+
+        if request is None:
+            self.write_response(Status.BadRequest)
+
+            return
+
+        method, path, params = request
         headers = self.read_headers()
 
         print(method, path, params)
