@@ -107,11 +107,10 @@ class PackageTest(TestCase):
 
 
 def main():
-    shutil.rmtree('storage', ignore_errors=True)
-
     sequencer = systest.setup("Mys website",
                               console_log_level=logging.DEBUG)
 
+    shutil.rmtree('storage', ignore_errors=True)
     website = pexpect.spawn(f'../build/speed/app --port {PORT} -d storage',
                             logfile=Logger(),
                             encoding='utf-8',
