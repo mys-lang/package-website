@@ -110,7 +110,7 @@ class HttpClient:
             self.handle_index(method)
         elif path == "/favicon.ico":
             self.handle_favicon(method)
-        elif path.match(re"^/package/[^/]+.tar.gz$") is not None:
+        elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
