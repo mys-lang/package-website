@@ -34,10 +34,36 @@ _STATUS_STRINGS: {i64: string} = {
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
 
-class HttpClient:
-    client: Client
+class ClientHandlerFiber(Fiber):
     database: Database
+    event: Event
+    client: Client
+    client_handlers: [ClientHandlerFiber]
     root_directory: string
+
+    def __init__(self,
+                 database: Database,
+                 client_handlers: [ClientHandlerFiber],
+                 index: i64):
+        self.database = database
+        self.client_handlers = client_handlers
+        self.root_directory = f".website/{index}"
+        self.event = Event()
+        self.client = None
+        mkdir(self.root_directory, exists_ok=True)
+
+    def run(self):
+        while True:
+            self.event.wait()
+            self.event.clear()
+
+            try:
+                self.serve()
+            except Error as e:
+                print(e)
+
+            self.client.disconnect()
+            self.client_handlers += self
 
     def make_path(self, path: string) -> string:
         """Prepend the database root directory path to given path. Given path
@@ -93,7 +119,7 @@ class HttpClient:
 
         return headers
 
-    def run(self):
+    def serve(self):
         request = self.read_request_line()
 
         if request is None:
@@ -255,37 +281,6 @@ class HttpClient:
         print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
-
-class ClientHandlerFiber(Fiber):
-    database: Database
-    event: Event
-    client: Client
-    client_handlers: [ClientHandlerFiber]
-    root_directory: string
-
-    def __init__(self,
-                 database: Database,
-                 client_handlers: [ClientHandlerFiber],
-                 index: i64):
-        self.database = database
-        self.client_handlers = client_handlers
-        self.root_directory = f".website/{index}"
-        self.event = Event()
-        self.client = None
-        mkdir(self.root_directory, exists_ok=True)
-
-    def run(self):
-        while True:
-            self.event.wait()
-            self.event.clear()
-
-            try:
-                HttpClient(self.client, self.database, self.root_directory).run()
-            except Error as e:
-                print(e)
-
-            self.client.disconnect()
-            self.client_handlers += self
 
 def main(argv: [string]):
     parser = Parser("website")
