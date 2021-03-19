@@ -205,7 +205,6 @@ class HttpClient:
                               headers: {string: string}):
         name_and_version = path[9:-7]
         database_path = self.database.make_path(path[1:])
-        fiber_path = self.make_path(path[9:])
 
         match method:
             case "GET":
@@ -228,6 +227,7 @@ class HttpClient:
                     self.write_response(Status.Continue)
 
                 data = self.client.read(content_length)
+                fiber_path = self.make_path("archive.tar.gz")
                 BinaryFile(fiber_path, "w").write(data)
                 tar(fiber_path,
                     extract=True,
