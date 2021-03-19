@@ -154,7 +154,7 @@ class HttpClient:
         match method:
             case "GET":
                 self.write_response(Status.Ok)
-                self.client.write(BinaryFile("favicon.ico").read())
+                self.client.write(BinaryFile(f"{__assets__}/favicon.ico").read())
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
