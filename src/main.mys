@@ -7,6 +7,7 @@ from os import tar
 from os import exists
 from os import mkdir
 from os import system
+from os import rm
 from .database import Database
 from .database import Package
 from .database import Release
@@ -50,6 +51,10 @@ class ClientHandlerFiber(Fiber):
         self.root_directory = f".website/{index}"
         self.event = Event()
         self.client = None
+        self.create_root_directory()
+
+    def create_root_directory(self):
+        rm(self.root_directory, recursive=True, force=True)
         mkdir(self.root_directory, exists_ok=True)
 
     def run(self):
@@ -136,6 +141,8 @@ class ClientHandlerFiber(Fiber):
             self.handle_index(method)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
+        elif path.starts_with("/package/doc/"):
+            self.handle_package_doc(method, path)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         else:
@@ -174,6 +181,23 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
+    def handle_package_doc(self, method: string, path: string):
+        match method:
+            case "GET":
+                if ".." in path:
+                    self.write_response(Status.BadRequest)
+                    return
+
+                path = self.database.make_path(path[1:])
+
+                if exists(path):
+                    self.write_response(Status.Ok)
+                    self.client.write(BinaryFile(path).read())
+                else:
+                    self.write_response(Status.NotFound)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
     def handle_package(self, method: string, path: string):
         package_name = path[9:]
 
@@ -193,8 +217,15 @@ class ClientHandlerFiber(Fiber):
 
                     homepage_url = (
                         f"https://github.com/mys-lang/package-{package.name}")
-                    doc_url = (
-                        f"https://mys-package-{package.name}.readthedocs.io/en/latest")
+                    doc_path = f"doc/{package.name}/html/index.html"
+
+                    if exists(self.database.make_path(f"package/{doc_path}")):
+                        documentation = (
+                            "  <br/>"
+                            "  <br/>"
+                            f"  Documentation: <a href=\"{doc_path}\">{doc_path}</a>\n")
+                    else:
+                        documentation = ""
 
                     self.write_response(Status.Ok)
                     self.client.write(
@@ -202,9 +233,7 @@ class ClientHandlerFiber(Fiber):
                         f"  <title>{package.name}</title>\n"
                         f"  <h1>{package.name}</h1>\n"
                         f"  Homepage: <a href=\"{homepage_url}\">{homepage_url}</a>\n"
-                        "  <br/>"
-                        "  <br/>"
-                        f"  Documentation: <a href=\"{doc_url}\">{doc_url}</a>\n"
+                        f"{documentation}"
                         "  <h3>Releases</h3>\n"
                         "  <ul>\n"
                         f"{releases}"
@@ -215,56 +244,82 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
+    def generate_package_documentaiton(self, package_name: string):
+        database_doc_path = self.database.make_path(f"package/doc/{package_name}")
+        rm(database_doc_path, recursive=True, force=True)
+        mkdir(database_doc_path, exists_ok=True)
+
+        if exists(f"{self.root_directory}/doc"):
+            system(f"mys -C {self.root_directory} doc")
+            system(f"mv {self.root_directory}/build/doc/html {database_doc_path}")
+        else:
+            print("Package has no documentation.")
+
     def handle_package_tar_gz(self,
                               method: string,
                               path: string,
                               headers: {string: string}):
-        name_and_version = path[9:-7]
         database_path = self.database.make_path(path[1:])
 
         match method:
             case "GET":
-                if exists(database_path):
-                    data = BinaryFile(database_path).read()
-                    self.write_response(Status.Ok)
-                    self.client.write(data)
-                else:
-                    self.write_response(Status.NotFound)
+                self.handle_package_tar_gz_get(database_path)
             case "POST":
-                content_length = u32(headers["Content-Length"])
-
-                if content_length > 1_000_000:
-                    self.write_response(Status.BadRequest)
-                    return
-
-                expect = headers.get("Expect", "")
-
-                if expect == "100-continue":
-                    self.write_response(Status.Continue)
-
-                data = self.client.read(content_length)
-                fiber_path = self.make_path("archive.tar.gz")
-                BinaryFile(fiber_path, "w").write(data)
-                tar(fiber_path,
-                    extract=True,
-                    path=f"{name_and_version}/package.toml",
-                    strip_components=1,
-                    output_directory=self.root_directory)
-                system(f"mv {fiber_path} {database_path}")
-                package_toml = TextFile(self.make_path("package.toml")).read()
-                config = toml_decode(package_toml)
-                package_name = config.get("package").get("name").get_string()
-                package_version = config.get("package").get("version").get_string()
-                package = self.database.get_package(package_name)
-
-                if package is None:
-                    self.database.create_package(package_name)
-                    package = self.database.get_package(package_name)
-
-                self.database.add_package_release(package.package_id, package_version)
-                self.write_response(Status.Ok)
+                self.handle_package_tar_gz_post(path, headers, database_path)
             case _:
                 self.write_response(Status.MethodNotAllowed)
+
+    def handle_package_tar_gz_get(self, database_path: string):
+        if exists(database_path):
+            data = BinaryFile(database_path).read()
+            self.write_response(Status.Ok)
+            self.client.write(data)
+        else:
+            self.write_response(Status.NotFound)
+
+    def handle_package_tar_gz_post(self,
+                                   path: string,
+                                   headers: {string: string},
+                                   database_path: string):
+        name_and_version = path[9:-7]
+        content_length = u32(headers["Content-Length"])
+
+        if content_length > 1_000_000:
+            self.write_response(Status.BadRequest)
+            return
+
+        expect = headers.get("Expect", "")
+
+        if expect == "100-continue":
+            self.write_response(Status.Continue)
+
+        data = self.client.read(content_length)
+        self.create_root_directory()
+        fiber_path = self.make_path("archive.tar.gz")
+        BinaryFile(fiber_path, "w").write(data)
+        tar(fiber_path,
+            extract=True,
+            strip_components=1,
+            output_directory=self.root_directory)
+        package_toml = TextFile(self.make_path("package.toml")).read()
+        config = toml_decode(package_toml)
+        package_name = config.get("package").get("name").get_string()
+        package_version = config.get("package").get("version").get_string()
+
+        if package_name.match(re"^[\w\-]+$") is None:
+            self.write_response(Status.BadRequest)
+            return
+
+        package = self.database.get_package(package_name)
+
+        if package is None:
+            self.database.create_package(package_name)
+            package = self.database.get_package(package_name)
+
+        system(f"mv {fiber_path} {database_path}")
+        self.database.add_package_release(package.package_id, package_version)
+        self.generate_package_documentaiton(package_name)
+        self.write_response(Status.Ok)
 
     def handle_static_file(self, method: string, path: string):
         match method:
