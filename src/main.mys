@@ -134,14 +134,12 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/":
             self.handle_index(method)
-        elif path == "/favicon.ico":
-            self.handle_favicon(method)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         else:
-            self.write_response(Status.NotFound)
+            self.handle_static_file(method, path)
 
     def handle_index(self, method: string):
         match method:
@@ -173,14 +171,6 @@ class ClientHandlerFiber(Fiber):
                     "    </ul>\n"
                     "  </body>\n"
                     "</html>".to_utf8())
-            case _:
-                self.write_response(Status.MethodNotAllowed)
-
-    def handle_favicon(self, method: string):
-        match method:
-            case "GET":
-                self.write_response(Status.Ok)
-                self.client.write(BinaryFile(f"{__assets__}/favicon.ico").read())
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
@@ -273,6 +263,19 @@ class ClientHandlerFiber(Fiber):
 
                 self.database.add_package_release(package.package_id, package_version)
                 self.write_response(Status.Ok)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    def handle_static_file(self, method: string, path: string):
+        match method:
+            case "GET":
+                path = f"{__assets__}{path}"
+
+                if exists(path) and ".." not in path:
+                    self.write_response(Status.Ok)
+                    self.client.write(BinaryFile(path).read())
+                else:
+                    self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
