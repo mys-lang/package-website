@@ -154,10 +154,11 @@ class ClientHandlerFiber(Fiber):
                 packages = ""
 
                 for package_name in self.database.get_packages():
+                    package = self.database.get_package(package_name)
                     packages += (
                         "      <li>"
                         f"<a href=\"/package/{package_name}\">{package_name}</a>"
-                        "</li>\n")
+                        f" - {package.description}</li>\n")
 
                 self.write_response(Status.Ok)
                 self.client.write(
@@ -304,7 +305,12 @@ class ClientHandlerFiber(Fiber):
         package_toml = TextFile(self.make_path("package.toml")).read()
         config = toml_decode(package_toml)
         package_name = config.get("package").get("name").get_string()
-        package_version = config.get("package").get("version").get_string()
+        version = config.get("package").get("version").get_string()
+
+        try:
+            description = config.get("package").get("description").get_string()
+        except KeyError:
+            description = "No description found."
 
         if package_name.match(re"^[\w\-]+$") is None:
             self.write_response(Status.BadRequest)
@@ -313,11 +319,13 @@ class ClientHandlerFiber(Fiber):
         package = self.database.get_package(package_name)
 
         if package is None:
-            self.database.create_package(package_name)
+            self.database.create_package(package_name, description)
             package = self.database.get_package(package_name)
+        else:
+            self.database.modify_package(package_name, description)
 
         system(f"mv {fiber_path} {database_path}")
-        self.database.add_package_release(package.package_id, package_version)
+        self.database.add_package_release(package.package_id, version)
         self.generate_package_documentaiton(package_name)
         self.write_response(Status.Ok)
 

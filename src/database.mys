@@ -5,6 +5,7 @@ from os import mkdir
 class Package:
     package_id: i64
     name: string
+    description: string
     releases: [Release]
 
 class Release:
@@ -13,6 +14,7 @@ class Release:
 class Database:
     _database: SqliteDatabase
     _create_package: Statement
+    _modify_package: Statement
     _get_package: Statement
     _get_packages: Statement
     _get_releases: Statement
@@ -27,7 +29,8 @@ class Database:
 
         self._database.execute("CREATE TABLE IF NOT EXISTS packages("
                                "package_id INTEGER PRIMARY KEY,"
-                               "name TEXT NOT NULL UNIQUE"
+                               "name TEXT NOT NULL UNIQUE,"
+                               "description TEXT"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS releases("
                                "release_id INTEGER PRIMARY KEY,"
@@ -48,7 +51,9 @@ class Database:
         self._get_releases = self._database.prepare(
             "SELECT * FROM releases WHERE package_id == ?")
         self._create_package = self._database.prepare(
-            "INSERT INTO packages (name) VALUES(?)")
+            "INSERT INTO packages (name, description) VALUES(?, ?)")
+        self._modify_package = self._database.prepare(
+            "UPDATE packages SET description = ? WHERE name == ?")
         self._add_release = self._database.prepare(
             "INSERT OR IGNORE INTO releases (package_id, version) VALUES(?, ?)")
 
@@ -62,9 +67,15 @@ class Database:
 
         return f"{self._root_directory}/{path}"
 
-    def create_package(self, name: string):
+    def create_package(self, name: string, description: string):
         self._create_package.bind_string(1, name)
+        self._create_package.bind_string(2, description)
         self._create_package.execute()
+
+    def modify_package(self, name: string, description: string):
+        self._modify_package.bind_string(1, description)
+        self._modify_package.bind_string(2, name)
+        self._modify_package.execute()
 
     def get_package(self, name: string) -> Package:
         self._get_package.bind_string(1, name)
@@ -74,6 +85,7 @@ class Database:
 
         package = Package(self._get_package.column_int(0),
                           self._get_package.column_string(1),
+                          self._get_package.column_string(2),
                           [])
         self._get_package.fetch()
 
