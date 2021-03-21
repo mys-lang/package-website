@@ -141,8 +141,6 @@ class ClientHandlerFiber(Fiber):
             self.handle_index(method)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
-        elif path.starts_with("/package/doc/"):
-            self.handle_package_doc(method, path)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         else:
@@ -155,9 +153,11 @@ class ClientHandlerFiber(Fiber):
 
                 for package_name in self.database.get_packages():
                     package = self.database.get_package(package_name)
+                    path = (f"/package/{package_name}/{package.latest_release.version}"
+                            "/index.html")
                     packages += (
                         "      <li>"
-                        f"<a href=\"/package/{package_name}\">{package_name}</a>"
+                        f"<a href=\"{path}\">{package_name}</a>"
                         f" - {package.latest_release.description}</li>\n")
 
                 self.write_response(Status.Ok)
@@ -182,7 +182,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_doc(self, method: string, path: string):
+    def handle_package(self, method: string, path: string):
         match method:
             case "GET":
                 if ".." in path:
@@ -192,69 +192,27 @@ class ClientHandlerFiber(Fiber):
                 path = self.database.make_path(path[1:])
 
                 if exists(path):
-                    self.write_response(Status.Ok)
+                    self.write_static_response_ok(path)
                     self.client.write(BinaryFile(path).read())
                 else:
                     self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package(self, method: string, path: string):
-        package_name = path[9:]
-
-        match method:
-            case "GET":
-                package = self.database.get_package(package_name)
-
-                if package is not None:
-                    releases = ""
-
-                    for release in package.releases:
-                        href = f"/package/{package.name}-{release.version}.tar.gz"
-                        releases += (
-                            "    <li>"
-                            f"<a href=\"{href}\" download>{release.version}</a>"
-                            "</li>\n")
-
-                    homepage_url = (
-                        f"https://github.com/mys-lang/package-{package.name}")
-                    doc_path = f"doc/{package.name}/html/index.html"
-
-                    if exists(self.database.make_path(f"package/{doc_path}")):
-                        documentation = (
-                            "  <br/>"
-                            "  <br/>"
-                            f"  Documentation: <a href=\"{doc_path}\">{doc_path}</a>\n")
-                    else:
-                        documentation = ""
-
-                    self.write_response(Status.Ok)
-                    self.client.write(
-                        "<html>\n"
-                        f"  <title>{package.name}</title>\n"
-                        f"  <h1>{package.name}</h1>\n"
-                        f"  Homepage: <a href=\"{homepage_url}\">{homepage_url}</a>\n"
-                        f"{documentation}"
-                        "  <h3>Releases</h3>\n"
-                        "  <ul>\n"
-                        f"{releases}"
-                        "  </ul>\n"
-                        "</html>".to_utf8())
-                else:
-                    self.write_response(Status.NotFound)
-            case _:
-                self.write_response(Status.MethodNotAllowed)
-
-    def generate_package_documentation(self, package_name: string):
-        database_doc_path = self.database.make_path(f"package/doc/{package_name}")
+    def generate_package_documentation(self,
+                                       package_name: string,
+                                       version: string):
+        database_doc_path = self.database.make_path(
+            f"package/{package_name}/{version}")
         rm(database_doc_path, recursive=True, force=True)
         mkdir(database_doc_path, exists_ok=True)
 
         if exists(f"{self.root_directory}/doc"):
             system(f"mys -C {self.root_directory} doc")
-            system(f"mv {self.root_directory}/build/doc/html {database_doc_path}")
+            system(f"mv {self.root_directory}/build/doc/html/* {database_doc_path}")
         else:
-            print("Package has no documentation.")
+            data = b"<html>No package documentation found!</html>"
+            BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
 
     def handle_package_tar_gz(self,
                               method: string,
@@ -282,7 +240,6 @@ class ClientHandlerFiber(Fiber):
                                    path: string,
                                    headers: {string: string},
                                    database_path: string):
-        name_and_version = path[9:-7]
         content_length = u32(headers["Content-Length"])
 
         if content_length > 1_000_000:
@@ -336,7 +293,7 @@ class ClientHandlerFiber(Fiber):
                 self.database.modify_package(package, release)
 
         system(f"mv {fiber_path} {database_path}")
-        self.generate_package_documentation(package_name)
+        self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok)
 
     def handle_static_file(self, method: string, path: string):
@@ -345,18 +302,31 @@ class ClientHandlerFiber(Fiber):
                 path = f"{__assets__}{path}"
 
                 if exists(path) and ".." not in path:
-                    self.write_response(Status.Ok)
+                    self.write_static_response_ok(path)
                     self.client.write(BinaryFile(path).read())
                 else:
                     self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def write_response(self, status: Status):
+    def write_response(self, status: Status, headers: {string: string} = {}):
         status_string = _STATUS_STRINGS[i64(status)]
         print(status, status_string)
-        self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
-                          "\r\n".to_utf8())
+        self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())
+
+        for name, value in headers:
+            self.client.write(f"{name}: {value}\r\n".to_utf8())
+
+        self.client.write("\r\n".to_utf8())
+
+    def write_static_response_ok(self, path: string):
+        if path.ends_with(".html"):
+            self.write_response(Status.Ok)
+        else:
+            self.write_response(Status.Ok,
+                                headers={
+                                    "Cache-Control": "public, max-age=7200"
+                                })
 
 class LatestVersionFinder:
     latest: string

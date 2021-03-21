@@ -83,7 +83,7 @@ class PackageTest(TestCase):
             data = fin.read()
 
         # Package page does not exist.
-        response = self.http_get("/package/bar")
+        response = self.http_get("/package/bar/0.3.0/index.html")
         self.assert_equal(response.status_code, 404)
 
         # Download when not present.
@@ -100,10 +100,9 @@ class PackageTest(TestCase):
         self.assert_equal(response.content, data)
 
         # Package page.
-        response = self.http_get("/package/bar")
+        response = self.http_get("/package/bar/0.3.0/index.html")
         self.assert_equal(response.status_code, 200)
-        self.assert_in('<title>bar</title>', response.text)
-        self.assert_in('0.3.0', response.text)
+        self.assert_in('No package documentation found!', response.text)
 
 
 def main():
