@@ -79,6 +79,39 @@ class PackageTest(TestCase):
     """
 
     def run(self):
+        shutil.rmtree("foo", ignore_errors=True)
+        subprocess.run(["mys", "new", "foo"], check=True)
+        subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
+
+        with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
+            data = fin.read()
+
+        # Package page does not exist.
+        response = self.http_get("/package/foo/0.1.0/index.html")
+        self.assert_equal(response.status_code, 404)
+
+        # Download when not present.
+        response = self.http_get("/package/foo-0.1.0.tar.gz")
+        self.assert_equal(response.status_code, 404)
+
+        # Upload.
+        response = self.http_post("/package/foo-0.1.0.tar.gz", data)
+        self.assert_equal(response.status_code, 200)
+
+        # Download.
+        response = self.http_get("/package/foo-0.1.0.tar.gz")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.content, data)
+
+        # Package page.
+        response = self.http_get("/package/foo/0.1.0/index.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('Foo 0.1.0 documentation', response.text)
+
+
+class PackageNoDocTest(TestCase):
+
+    def run(self):
         with open('bar-0.3.0.tar.gz', 'rb') as fin:
             data = fin.read()
 
@@ -86,18 +119,9 @@ class PackageTest(TestCase):
         response = self.http_get("/package/bar/0.3.0/index.html")
         self.assert_equal(response.status_code, 404)
 
-        # Download when not present.
-        response = self.http_get("/package/bar-0.3.0.tar.gz")
-        self.assert_equal(response.status_code, 404)
-
         # Upload.
         response = self.http_post("/package/bar-0.3.0.tar.gz", data)
         self.assert_equal(response.status_code, 200)
-
-        # Download.
-        response = self.http_get("/package/bar-0.3.0.tar.gz")
-        self.assert_equal(response.status_code, 200)
-        self.assert_equal(response.content, data)
 
         # Package page.
         response = self.http_get("/package/bar/0.3.0/index.html")
@@ -120,7 +144,8 @@ def main():
 
     sequencer.run(
         FreshDatabaseTest(),
-        PackageTest()
+        PackageTest(),
+        PackageNoDocTest()
     )
 
     website.close()
