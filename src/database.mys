@@ -5,11 +5,13 @@ from os import mkdir
 class Package:
     package_id: i64
     name: string
-    description: string
+    latest_release: Release
     releases: [Release]
 
 class Release:
+    release_id: i64
     version: string
+    description: string
 
 class Database:
     _database: SqliteDatabase
@@ -17,6 +19,8 @@ class Database:
     _modify_package: Statement
     _get_package: Statement
     _get_packages: Statement
+    _get_release: Statement
+    _get_release_by_id: Statement
     _get_releases: Statement
     _add_release: Statement
     _root_directory: string
@@ -30,12 +34,13 @@ class Database:
         self._database.execute("CREATE TABLE IF NOT EXISTS packages("
                                "package_id INTEGER PRIMARY KEY,"
                                "name TEXT NOT NULL UNIQUE,"
-                               "description TEXT"
+                               "latest_release_id INTEGER DEFAULT -1"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS releases("
                                "release_id INTEGER PRIMARY KEY,"
                                "package_id INTEGER,"
                                "version TEXT NOT NULL,"
+                               "description TEXT NOT NULL,"
                                "UNIQUE(package_id, version)"
                                ")")
 
@@ -48,14 +53,18 @@ class Database:
             "SELECT * FROM packages WHERE name == ?")
         self._get_packages = self._database.prepare(
             "SELECT (name) FROM packages")
+        self._get_release = self._database.prepare(
+            "SELECT * FROM releases WHERE package_id == ? AND version == ?")
+        self._get_release_by_id = self._database.prepare(
+            "SELECT * FROM releases WHERE release_id == ?")
         self._get_releases = self._database.prepare(
             "SELECT * FROM releases WHERE package_id == ?")
         self._create_package = self._database.prepare(
-            "INSERT INTO packages (name, description) VALUES(?, ?)")
+            "INSERT INTO packages (name) VALUES(?)")
         self._modify_package = self._database.prepare(
-            "UPDATE packages SET description = ? WHERE name == ?")
+            "UPDATE packages SET latest_release_id = ? WHERE name == ?")
         self._add_release = self._database.prepare(
-            "INSERT OR IGNORE INTO releases (package_id, version) VALUES(?, ?)")
+            "INSERT OR IGNORE INTO releases (package_id, version, description) VALUES(?, ?, ?)")
 
         mkdir(self.make_path("package"), exists_ok=True)
 
@@ -67,14 +76,13 @@ class Database:
 
         return f"{self._root_directory}/{path}"
 
-    def create_package(self, name: string, description: string):
+    def create_package(self, name: string):
         self._create_package.bind_string(1, name)
-        self._create_package.bind_string(2, description)
         self._create_package.execute()
 
-    def modify_package(self, name: string, description: string):
-        self._modify_package.bind_string(1, description)
-        self._modify_package.bind_string(2, name)
+    def modify_package(self, package: Package, latest_release: Release):
+        self._modify_package.bind_int(1, latest_release.release_id)
+        self._modify_package.bind_string(2, package.name)
         self._modify_package.execute()
 
     def get_package(self, name: string) -> Package:
@@ -85,14 +93,25 @@ class Database:
 
         package = Package(self._get_package.column_int(0),
                           self._get_package.column_string(1),
-                          self._get_package.column_string(2),
+                          None,
                           [])
+        latest_release_id = self._get_package.column_int(2)
         self._get_package.fetch()
+
+        if latest_release_id != -1:
+            self._get_release_by_id.bind_int(1, latest_release_id)
+            self._get_release_by_id.fetch()
+            package.latest_release = Release(self._get_release_by_id.column_int(0),
+                                             self._get_release_by_id.column_string(2),
+                                             self._get_release_by_id.column_string(3))
+            self._get_release_by_id.fetch()
 
         self._get_releases.bind_int(1, package.package_id)
 
         while self._get_releases.fetch():
-            package.releases += Release(self._get_releases.column_string(2))
+            package.releases += Release(self._get_releases.column_int(1),
+                                        self._get_releases.column_string(2),
+                                        self._get_releases.column_string(3))
 
         return package
 
@@ -104,7 +123,24 @@ class Database:
 
         return packages
 
-    def add_package_release(self, package_id: i64, version: string):
-        self._add_release.bind_int(1, package_id)
+    def add_package_release(self, package: Package,
+                            version: string,
+                            description: string):
+        self._add_release.bind_int(1, package.package_id)
         self._add_release.bind_string(2, version)
+        self._add_release.bind_string(3, description)
         self._add_release.execute()
+
+    def get_package_release(self, package: Package, version: string) -> Release:
+        self._get_release.bind_int(1, package.package_id)
+        self._get_release.bind_string(2, version)
+
+        if not self._get_release.fetch():
+            return None
+
+        release = Release(self._get_release.column_int(0),
+                          self._get_release.column_string(2),
+                          self._get_release.column_string(3))
+        self._get_release.fetch()
+
+        return release

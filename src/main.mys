@@ -158,7 +158,7 @@ class ClientHandlerFiber(Fiber):
                     packages += (
                         "      <li>"
                         f"<a href=\"/package/{package_name}\">{package_name}</a>"
-                        f" - {package.description}</li>\n")
+                        f" - {package.latest_release.description}</li>\n")
 
                 self.write_response(Status.Ok)
                 self.client.write(
@@ -170,7 +170,7 @@ class ClientHandlerFiber(Fiber):
                     "GitHub</a>: Mys' official project repository.\n"
                     "    </br>\n"
                     "    </br>\n"
-                    "    <a href=\"https://mys.readthedocs.org/en/latest/\">"
+                    "    <a href=\"html/index.html\">"
                     "The Mys documentation</a>: Mys' official documentation. The best "
                     "place to start learning Mys.\n"
                     "    <h3>Packages</h3>\n"
@@ -245,7 +245,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def generate_package_documentaiton(self, package_name: string):
+    def generate_package_documentation(self, package_name: string):
         database_doc_path = self.database.make_path(f"package/doc/{package_name}")
         rm(database_doc_path, recursive=True, force=True)
         mkdir(database_doc_path, exists_ok=True)
@@ -319,14 +319,24 @@ class ClientHandlerFiber(Fiber):
         package = self.database.get_package(package_name)
 
         if package is None:
-            self.database.create_package(package_name, description)
+            self.database.create_package(package_name)
             package = self.database.get_package(package_name)
+
+        self.database.add_package_release(package, version, description)
+        release = self.database.get_package_release(package, version)
+
+        if package.latest_release is None:
+            self.database.modify_package(package, release)
         else:
-            self.database.modify_package(package_name, description)
+            finder = LatestVersionFinder()
+            finder.add(version)
+            finder.add(package.latest_release.version)
+
+            if finder.latest == version:
+                self.database.modify_package(package, release)
 
         system(f"mv {fiber_path} {database_path}")
-        self.database.add_package_release(package.package_id, version)
-        self.generate_package_documentaiton(package_name)
+        self.generate_package_documentation(package_name)
         self.write_response(Status.Ok)
 
     def handle_static_file(self, method: string, path: string):
@@ -347,6 +357,41 @@ class ClientHandlerFiber(Fiber):
         print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n"
                           "\r\n".to_utf8())
+
+class LatestVersionFinder:
+    latest: string
+    _latest: (i64, i64, i64)
+
+    def __init__(self):
+        self.latest = None
+
+    def add(self, version: string):
+        mo = version.match(re"^(\d+)\.(\d+)\.(\d+)$")
+
+        if mo is None:
+            return
+
+        major = i64(mo.group(1))
+        minor = i64(mo.group(2))
+        revision = i64(mo.group(3))
+
+        if self.latest is None:
+            self.latest = version
+            self._latest = (major, minor, revision)
+
+            return
+
+        if major < self._latest[0]:
+            return
+        elif major == self._latest[0]:
+            if minor < self._latest[1]:
+                return
+            elif minor == self._latest[1]:
+                if revision < self._latest[2]:
+                    return
+
+        self.latest = version
+        self._latest = (major, minor, revision)
 
 def main(argv: [string]):
     parser = Parser("website")
