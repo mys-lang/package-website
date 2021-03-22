@@ -11,6 +11,8 @@ from os import rm
 from .database import Database
 from .database import Package
 from .database import Release
+from .database import Mys
+from .database import MysRelease
 from toml import decode as toml_decode
 from toml import Value as TomlValue
 from fiber import Fiber
@@ -23,6 +25,7 @@ class ReadError(Error):
 class Status:
     Continue = 100
     Ok = 200
+    Found = 302
     BadRequest = 400
     NotFound = 404
     MethodNotAllowed = 405
@@ -30,6 +33,7 @@ class Status:
 _STATUS_STRINGS: {i64: string} = {
     i64(Status.Continue): "Continue",
     i64(Status.Ok): "OK",
+    i64(Status.Found): "Found",
     i64(Status.BadRequest): "Bad Request",
     i64(Status.NotFound): "Not Found",
     i64(Status.MethodNotAllowed): "Method Not Allowed"
@@ -139,46 +143,48 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/":
             self.handle_index(method)
+        elif path.match(re"/\d+\.\d+\.\d+[\w-]*/") is not None:
+            self.handle_main(method, path)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
+        elif path.match(re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
+            self.handle_mys_tar_gz(method, path, headers)
         else:
             self.handle_static_file(method, path)
 
     def handle_index(self, method: string):
         match method:
             case "GET":
-                packages = ""
+                mys = self.database.get_mys()
+                print(mys)
+                if mys.latest_release is not None:
+                    self.write_response(
+                        Status.Found,
+                        headers={
+                            "Location": f"/{mys.latest_release.version}/index.html"
+                        })
+                else:
+                    self.write_response(Status.Ok)
+                    self.client.write(b"<html>No mys documentation found!</html>")
+            case _:
+                self.write_response(Status.MethodNotAllowed)
 
-                for package_name in self.database.get_packages():
-                    package = self.database.get_package(package_name)
-                    path = (f"/package/{package_name}/{package.latest_release.version}"
-                            "/index.html")
-                    packages += (
-                        "      <li>"
-                        f"<a href=\"{path}\">{package_name}</a>"
-                        f" - {package.latest_release.description}</li>\n")
+    def handle_main(self, method: string, path: string):
+        match method:
+            case "GET":
+                if ".." in path:
+                    self.write_response(Status.BadRequest)
+                    return
 
-                self.write_response(Status.Ok)
-                self.client.write(
-                    "<html>\n"
-                    "  <title>The Mys Programming Language</title>\n"
-                    "  <body>\n"
-                    "    <h1>Welcome!</h1>\n"
-                    "    <a href=\"https://github.com/mys-lang/mys\">"
-                    "GitHub</a>: Mys' official project repository.\n"
-                    "    </br>\n"
-                    "    </br>\n"
-                    "    <a href=\"html/index.html\">"
-                    "The Mys documentation</a>: Mys' official documentation. The best "
-                    "place to start learning Mys.\n"
-                    "    <h3>Packages</h3>\n"
-                    "    <ul>\n"
-                    f"{packages}"
-                    "    </ul>\n"
-                    "  </body>\n"
-                    "</html>".to_utf8())
+                path = self.database.make_path(path[1:])
+
+                if exists(path):
+                    self.write_static_response_ok(path)
+                    self.client.write(BinaryFile(path).read())
+                else:
+                    self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
@@ -294,6 +300,57 @@ class ClientHandlerFiber(Fiber):
 
         system(f"mv {fiber_path} {database_path}")
         self.generate_package_documentation(package_name, version)
+        self.write_response(Status.Ok)
+
+    def handle_mys_tar_gz(self,
+                          method: string,
+                          path: string,
+                          headers: {string: string}):
+        database_path = self.database.make_path(path[1:])
+
+        match method:
+            case "POST":
+                self.handle_mys_tar_gz_post(path, headers, database_path)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    def handle_mys_tar_gz_post(self,
+                               path: string,
+                               headers: {string: string},
+                               database_path: string):
+        content_length = u32(headers["Content-Length"])
+
+        if content_length > 10_000_000:
+            self.write_response(Status.BadRequest)
+            return
+
+        expect = headers.get("Expect", "")
+
+        if expect == "100-continue":
+            self.write_response(Status.Continue)
+
+        data = self.client.read(content_length)
+        fiber_path = self.make_path("archive.tar.gz")
+        BinaryFile(fiber_path, "w").write(data)
+        version = path[5:-7]
+        rm(self.database.make_path(version), recursive=True, force=True)
+        tar(fiber_path,
+            extract=True,
+            output_directory=self.database.root_directory)
+        mys = self.database.get_mys()
+        self.database.add_mys_release(version)
+        release = self.database.get_mys_release(version)
+
+        if mys.latest_release is None:
+            self.database.modify_mys(release)
+        else:
+            finder = LatestVersionFinder()
+            finder.add(version)
+            finder.add(mys.latest_release.version)
+
+            if finder.latest == version:
+                self.database.modify_mys(release)
+
         self.write_response(Status.Ok)
 
     def handle_static_file(self, method: string, path: string):

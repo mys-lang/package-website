@@ -70,7 +70,36 @@ class FreshDatabaseTest(TestCase):
     def run(self):
         response = self.http_get("/")
         self.assert_equal(response.status_code, 200)
-        self.assert_in('<title>The Mys Programming Language</title>', response.text)
+        self.assert_in('<html>No mys documentation found!</html>', response.text)
+
+
+class MysTest(TestCase):
+    """Upload mys.
+
+    """
+
+    def run(self):
+        # Upload.
+        with open('mys-0.227.0.tar.gz', 'rb') as fin:
+            data = fin.read()
+
+        response = self.http_post("/mys-0.227.0.tar.gz", data)
+        self.assert_equal(response.status_code, 200)
+
+        # Index exists.
+        response = self.http_get("/")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('Welcome to Mys’ documentation!', response.text)
+
+        # Upload the same release a few more times.
+        for _ in range(3):
+            response = self.http_post("/mys-0.227.0.tar.gz", data)
+            self.assert_equal(response.status_code, 200)
+
+        # Index still exists.
+        response = self.http_get("/")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('Welcome to Mys’ documentation!', response.text)
 
 
 class PackageTest(TestCase):
@@ -144,6 +173,7 @@ def main():
 
     sequencer.run(
         FreshDatabaseTest(),
+        MysTest(),
         PackageTest(),
         PackageNoDocTest()
     )
