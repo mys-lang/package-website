@@ -110,10 +110,6 @@ class PackageTest(TestCase):
     def run(self):
         shutil.rmtree("foo", ignore_errors=True)
         subprocess.run(["mys", "new", "foo"], check=True)
-        subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
-
-        with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
-            data = fin.read()
 
         package_list_item = (
             '<li><p><a href="/package/foo/0.1.0/index.html">foo</a> - '
@@ -132,12 +128,15 @@ class PackageTest(TestCase):
         self.assert_equal(response.status_code, 404)
 
         # Upload.
-        response = self.http_post("/package/foo-0.1.0.tar.gz", data)
-        self.assert_equal(response.status_code, 200)
+        subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
 
         # Download.
         response = self.http_get("/package/foo-0.1.0.tar.gz")
         self.assert_equal(response.status_code, 200)
+
+        with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
+            data = fin.read()
+
         self.assert_equal(response.content, data)
 
         # Package page.
