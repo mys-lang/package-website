@@ -97,7 +97,8 @@ class Database:
         self._modify_package = self._database.prepare(
             "UPDATE packages SET latest_release_id = ? WHERE name == ?")
         self._add_package_release = self._database.prepare(
-            "INSERT OR IGNORE INTO releases (package_id, version, description) VALUES(?, ?, ?)")
+            "INSERT OR IGNORE INTO releases (package_id, version, description) "
+            "VALUES(?, ?, ?)")
 
         mkdir(self.make_path("package"), exists_ok=True)
 
@@ -134,9 +135,10 @@ class Database:
         if latest_release_id != -1:
             self._get_package_release_by_id.bind_int(1, latest_release_id)
             self._get_package_release_by_id.fetch()
-            package.latest_release = Release(self._get_package_release_by_id.column_int(0),
-                                             self._get_package_release_by_id.column_string(2),
-                                             self._get_package_release_by_id.column_string(3))
+            package.latest_release = Release(
+                self._get_package_release_by_id.column_int(0),
+                self._get_package_release_by_id.column_string(2),
+                self._get_package_release_by_id.column_string(3))
             self._get_package_release_by_id.fetch()
 
         self._get_package_releases.bind_int(1, package.package_id)

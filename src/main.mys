@@ -8,6 +8,7 @@ from os import exists
 from os import mkdir
 from os import system
 from os import rm
+from os import OsError
 from .database import Database
 from .database import Package
 from .database import Release
@@ -160,7 +161,7 @@ class ClientHandlerFiber(Fiber):
         match method:
             case "GET":
                 mys = self.database.get_mys()
-                print(mys)
+
                 if mys.latest_release is not None:
                     self.write_response(
                         Status.Found,
@@ -243,8 +244,13 @@ class ClientHandlerFiber(Fiber):
         mkdir(database_doc_path, exists_ok=True)
 
         if exists(f"{self.root_directory}/doc"):
-            system(f"mys -C {self.root_directory} doc")
-            system(f"mv {self.root_directory}/build/doc/html/* {database_doc_path}")
+            try:
+                system(f"mys -C {self.root_directory} doc")
+                system(f"mv {self.root_directory}/build/doc/html/* "
+                       f"{database_doc_path}")
+            except OsError:
+                data = b"<html>Package documentation build failed!</html>"
+                BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
         else:
             data = b"<html>No package documentation found!</html>"
             BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
@@ -349,7 +355,7 @@ class ClientHandlerFiber(Fiber):
                                database_path: string):
         content_length = u32(headers["Content-Length"])
 
-        if content_length > 10_000_000:
+        if content_length > 50_000_000:
             self.write_response(Status.BadRequest)
             return
 
