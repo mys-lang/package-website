@@ -143,8 +143,10 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/":
             self.handle_index(method)
+        elif path.match(re"/\d+\.\d+\.\d+[\w-]*/standard-library.html") is not None:
+            self.handle_mys_standard_library(method, path)
         elif path.match(re"/\d+\.\d+\.\d+[\w-]*/") is not None:
-            self.handle_main(method, path)
+            self.handle_mys(method, path)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
         elif path.starts_with("/package/"):
@@ -171,7 +173,34 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_main(self, method: string, path: string):
+    def handle_mys_standard_library(self, method: string, path: string):
+        match method:
+            case "GET":
+                path = self.database.make_path(path[1:])
+
+                if exists(path):
+                    self.write_static_response_ok(path)
+                    packages = ""
+
+                    for package_name in self.database.get_packages():
+                        package = self.database.get_package(package_name)
+                        version = package.latest_release.version
+                        database_doc_path = (
+                            f"/package/{package_name}/{version}/index.html")
+                        packages += (
+                            f"<li><p><a href=\"{database_doc_path}\">"
+                            f"{package_name}</a> - "
+                            f"{package.latest_release.description}</p></li>\n")
+
+                    data = TextFile(path).read()
+                    data = data.replace("<li><p>{website-package}</p></li>", packages)
+                    self.client.write(data.to_utf8())
+                else:
+                    self.write_response(Status.NotFound)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    def handle_mys(self, method: string, path: string):
         match method:
             case "GET":
                 if ".." in path:

@@ -115,9 +115,17 @@ class PackageTest(TestCase):
         with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
             data = fin.read()
 
+        package_list_item = (
+            '<li><p><a href="/package/foo/0.1.0/index.html">foo</a> - '
+            'Add a short package description here.</p></li>')
+
         # Package page does not exist.
         response = self.http_get("/package/foo/0.1.0/index.html")
         self.assert_equal(response.status_code, 404)
+
+        response = self.http_get("/0.227.0/standard-library.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_not_in(package_list_item, response.text)
 
         # Download when not present.
         response = self.http_get("/package/foo-0.1.0.tar.gz")
@@ -136,6 +144,10 @@ class PackageTest(TestCase):
         response = self.http_get("/package/foo/0.1.0/index.html")
         self.assert_equal(response.status_code, 200)
         self.assert_in('Foo 0.1.0 documentation', response.text)
+
+        response = self.http_get("/0.227.0/standard-library.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in(package_list_item, response.text)
 
 
 class PackageNoDocTest(TestCase):
