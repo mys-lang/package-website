@@ -130,14 +130,17 @@ class PackageTest(TestCase):
         # Upload.
         subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
 
-        # Download.
+        # Download specific version and latest.
+        with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
+            expected_data = fin.read()
+
         response = self.http_get("/package/foo-0.1.0.tar.gz")
         self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.content, expected_data)
 
-        with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
-            data = fin.read()
-
-        self.assert_equal(response.content, data)
+        response = self.http_get("/package/foo-latest.tar.gz")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.content, expected_data)
 
         # Package page.
         response = self.http_get("/package/foo/0.1.0/index.html")
