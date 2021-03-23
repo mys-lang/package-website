@@ -119,7 +119,7 @@ class PackageTest(TestCase):
         response = self.http_get("/package/foo/0.1.0/index.html")
         self.assert_equal(response.status_code, 404)
 
-        response = self.http_get("/0.227.0/standard-library.html")
+        response = self.http_get("/standard-library.html")
         self.assert_equal(response.status_code, 200)
         self.assert_not_in(package_list_item, response.text)
 
@@ -144,7 +144,7 @@ class PackageTest(TestCase):
         self.assert_equal(response.status_code, 200)
         self.assert_in('Foo 0.1.0 documentation', response.text)
 
-        response = self.http_get("/0.227.0/standard-library.html")
+        response = self.http_get("/standard-library.html")
         self.assert_equal(response.status_code, 200)
         self.assert_in(package_list_item, response.text)
 

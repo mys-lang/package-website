@@ -145,17 +145,21 @@ class ClientHandlerFiber(Fiber):
         if path == "/":
             self.handle_index(method)
         elif path.match(re"/\d+\.\d+\.\d+[\w-]*/standard-library.html") is not None:
-            self.handle_mys_standard_library(method, path)
+            self.handle_mys_version_standard_library(method, path)
         elif path.match(re"/\d+\.\d+\.\d+[\w-]*/") is not None:
-            self.handle_mys(method, path)
+            self.handle_mys_version(method, path)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, headers)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         elif path.match(re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_mys_tar_gz(method, path, headers)
-        else:
+        elif path == "/favicon.ico":
             self.handle_static_file(method, path)
+        elif path == "/standard-library.html":
+            self.handle_mys_standard_library(method, path)
+        else:
+            self.handle_mys(method, path)
 
     def handle_index(self, method: string):
         match method:
@@ -163,18 +167,14 @@ class ClientHandlerFiber(Fiber):
                 mys = self.database.get_mys()
 
                 if mys.latest_release is not None:
-                    self.write_response(
-                        Status.Found,
-                        headers={
-                            "Location": f"/{mys.latest_release.version}/index.html"
-                        })
+                    self.handle_mys(method, "/index.html")
                 else:
                     self.write_response(Status.Ok)
                     self.client.write(b"<html>No mys documentation found!</html>")
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_standard_library(self, method: string, path: string):
+    def handle_mys_version_standard_library(self, method: string, path: string):
         match method:
             case "GET":
                 path = self.database.make_path(path[1:])
@@ -201,7 +201,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys(self, method: string, path: string):
+    def handle_mys_version(self, method: string, path: string):
         match method:
             case "GET":
                 if ".." in path:
@@ -217,6 +217,24 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
+
+    def handle_mys_standard_library(self, method: string, path: string):
+        mys = self.database.get_mys()
+
+        if mys is not None:
+            path = f"/{mys.latest_release.version}{path}"
+            self.handle_mys_version_standard_library(method, path)
+        else:
+            self.write_response(Status.NotFound)
+
+    def handle_mys(self, method: string, path: string):
+        mys = self.database.get_mys()
+
+        if mys is not None:
+            path = f"/{mys.latest_release.version}{path}"
+            self.handle_mys_version(method, path)
+        else:
+            self.write_response(Status.NotFound)
 
     def handle_package(self, method: string, path: string):
         match method:
