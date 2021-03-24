@@ -25,34 +25,49 @@ Install certbot.
 
 https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/
 
-sudo certbot --nginx -d mys-lang.org
+Create a certificate and update nginx configuration. Redirect http to
+https.
 
-Redirect http to https.
+.. code-block:: text
 
-sudo certbot renew
+   sudo certbot --nginx -d mys-lang.org
+
+Run once in a while to renew the certificate.
+
+.. code-block:: text
+
+   sudo certbot renew
 
 Disk quota
 ----------
 
 https://www.digitalocean.com/community/tutorials/how-to-set-filesystem-quotas-on-ubuntu-18-04
 
-sudo apt update
-sudo apt install quota
+.. code-block:: text
+
+   sudo apt install quota
 
 Add usrquota to /etc/fstab.
 
-sudo nano /etc/fstab
+.. code-block:: text
 
-sudo mount -o remount /
+   sudo nano /etc/fstab
 
-cat /proc/mounts | grep ' / '
+Remount the filesystem and check that usrquota is present.
 
-sudo quotacheck -ugm /
+.. code-block:: text
 
-Set soft and hard limits:
+   sudo mount -o remount /
+   cat /proc/mounts | grep ' / '
 
-sudo edquota -u sammy
+Set soft and hard limits on the mys user:
+
+.. code-block:: text
+
+   $ sudo edquota -u mys
 
 Report quotas:
 
-sudo repquota -s /
+.. code-block:: text
+
+   $ sudo repquota -u -s -t /
