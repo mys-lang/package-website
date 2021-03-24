@@ -6,7 +6,7 @@ from os import TextFile
 from os import tar
 from os import exists
 from os import mkdir
-from os import system
+from os.subprocess import run
 from os import rm
 from os import OsError
 from .database import Database
@@ -265,9 +265,9 @@ class ClientHandlerFiber(Fiber):
 
         if exists(f"{self.root_directory}/doc"):
             try:
-                system(f"mys -C {self.root_directory} doc")
-                system(f"mv {self.root_directory}/build/doc/html/* "
-                       f"{database_doc_path}")
+                run(f"mys -C {self.root_directory} doc")
+                run(f"mv {self.root_directory}/build/doc/html/* "
+                    f"{database_doc_path}")
             except OsError:
                 data = b"<html>Package documentation build failed!</html>"
                 BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
@@ -368,7 +368,7 @@ class ClientHandlerFiber(Fiber):
             if finder.latest == version:
                 self.database.modify_package(package, release)
 
-        system(f"mv {fiber_path} {database_path}")
+        run(f"mv {fiber_path} {database_path}")
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok)
 

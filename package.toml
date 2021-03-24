@@ -7,7 +7,7 @@ description = "The Mys programming language website."
 [dependencies]
 argparse = "*"
 net = "*"
-os = "*"
+os = { path = "../package-os" }
 sqlite = "*"
 toml = "*"
 string = "*"
