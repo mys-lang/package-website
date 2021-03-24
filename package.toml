@@ -1,13 +1,13 @@
 [package]
 name = "website"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "The Mys programming language website."
 
 [dependencies]
-argparse = "*"
-net = "*"
-os = "*"
-sqlite = "*"
-toml = "*"
-string = "*"
+argparse = "latest"
+net = "latest"
+os = "latest"
+sqlite = "latest"
+toml = "latest"
+string = "latest"
