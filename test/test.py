@@ -128,7 +128,11 @@ class PackageTest(TestCase):
         self.assert_equal(response.status_code, 404)
 
         # Upload.
-        subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
+        proc = subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL],
+                              check=True,
+                              capture_output=True,
+                              text=True)
+        token = proc.stdout.rstrip()[-64:]
 
         # Download specific version and latest.
         with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
@@ -150,6 +154,24 @@ class PackageTest(TestCase):
         response = self.http_get("/standard-library.html")
         self.assert_equal(response.status_code, 200)
         self.assert_in(package_list_item, response.text)
+
+        # Upload the package again without a token.
+        with self.assert_raises(subprocess.CalledProcessError):
+            subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL],
+                           check=True)
+
+        # Upload the package again with wrong token.
+        with self.assert_raises(subprocess.CalledProcessError):
+            subprocess.run(["mys", "-C", "foo", "publish",
+                            "-a", BASE_URL,
+                            "-t", 64 * "0"],
+                           check=True)
+
+        # Upload the package again with correct token.
+        subprocess.run(["mys", "-C", "foo", "publish",
+                        "-a", BASE_URL,
+                        "-t", token],
+                       check=True)
 
 
 class PackageNoDocTest(TestCase):

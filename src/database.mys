@@ -7,6 +7,7 @@ class Package:
     name: string
     latest_release: Release
     releases: [Release]
+    access_token: string
 
 class Release:
     release_id: i64
@@ -15,6 +16,7 @@ class Release:
 
 class Mys:
     latest_release: MysRelease
+    access_token: string
 
 class MysRelease:
     release_id: i64
@@ -45,7 +47,8 @@ class Database:
 
         self._database.execute("CREATE TABLE IF NOT EXISTS mys("
                                "mys_id INTEGER PRIMARY KEY,"
-                               "latest_release_id INTEGER"
+                               "latest_release_id INTEGER,"
+                               "access_token TEXT"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS mys_releases("
                                "release_id INTEGER PRIMARY KEY,"
@@ -54,7 +57,8 @@ class Database:
         self._database.execute("CREATE TABLE IF NOT EXISTS packages("
                                "package_id INTEGER PRIMARY KEY,"
                                "name TEXT NOT NULL UNIQUE,"
-                               "latest_release_id INTEGER DEFAULT -1"
+                               "latest_release_id INTEGER DEFAULT -1,"
+                               "access_token TEXT NOT NULL"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS releases("
                                "release_id INTEGER PRIMARY KEY,"
@@ -93,7 +97,7 @@ class Database:
         self._get_package_releases = self._database.prepare(
             "SELECT * FROM releases WHERE package_id == ?")
         self._create_package = self._database.prepare(
-            "INSERT INTO packages (name) VALUES(?)")
+            "INSERT INTO packages (name, access_token) VALUES(?, ?)")
         self._modify_package = self._database.prepare(
             "UPDATE packages SET latest_release_id = ? WHERE name == ?")
         self._add_package_release = self._database.prepare(
@@ -110,8 +114,9 @@ class Database:
 
         return f"{self.root_directory}/{path}"
 
-    def create_package(self, name: string):
+    def create_package(self, name: string, access_token: string):
         self._create_package.bind_string(1, name)
+        self._create_package.bind_string(2, access_token)
         self._create_package.execute()
 
     def modify_package(self, package: Package, latest_release: Release):
@@ -128,7 +133,8 @@ class Database:
         package = Package(self._get_package.column_int(0),
                           self._get_package.column_string(1),
                           None,
-                          [])
+                          [],
+                          self._get_package.column_string(3))
         latest_release_id = self._get_package.column_int(2)
         self._get_package.fetch()
 
@@ -189,7 +195,7 @@ class Database:
         self._get_mys.fetch()
         latest_release_id = self._get_mys.column_int(1)
         self._get_mys.fetch()
-        mys = Mys(None)
+        mys = Mys(None, None)
 
         if latest_release_id != -1:
             self._get_mys_release_by_id.bind_int(1, latest_release_id)

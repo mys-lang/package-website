@@ -18,6 +18,8 @@ from toml import decode as toml_decode
 from toml import Value as TomlValue
 from fiber import Fiber
 from fiber import Event
+from . import create_access_token
+from . import parse_params
 
 class ReadError(Error):
     pass
@@ -28,6 +30,7 @@ class Status:
     Ok = 200
     Found = 302
     BadRequest = 400
+    Unauthorized = 401
     NotFound = 404
     MethodNotAllowed = 405
 
@@ -36,6 +39,7 @@ _STATUS_STRINGS: {i64: string} = {
     i64(Status.Ok): "OK",
     i64(Status.Found): "Found",
     i64(Status.BadRequest): "Bad Request",
+    i64(Status.Unauthorized): "Unauthorized",
     i64(Status.NotFound): "Not Found",
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
@@ -137,10 +141,11 @@ class ClientHandlerFiber(Fiber):
 
             return
 
-        method, path, params = request
+        method, path, params_string = request
+        params = parse_params(params_string)
         headers = self.read_headers()
 
-        print(method, path, params)
+        print(method, path, params_string)
 
         if path == "/":
             self.handle_index(method)
@@ -149,7 +154,7 @@ class ClientHandlerFiber(Fiber):
         elif path.match(re"/\d+\.\d+\.\d+[\w-]*/") is not None:
             self.handle_mys_version(method, path)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
-            self.handle_package_tar_gz(method, path, headers)
+            self.handle_package_tar_gz(method, path, params, headers)
         elif path.match(re"^/package/[\w-]+-latest.tar.gz$") is not None:
             self.handle_package_latest_tar_gz(method, path)
         elif path.starts_with("/package/"):
@@ -278,6 +283,7 @@ class ClientHandlerFiber(Fiber):
     def handle_package_tar_gz(self,
                               method: string,
                               path: string,
+                              params: {string: string},
                               headers: {string: string}):
         database_path = self.database.make_path(path[1:])
 
@@ -285,7 +291,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 self.handle_package_tar_gz_get(database_path)
             case "POST":
-                self.handle_package_tar_gz_post(path, headers, database_path)
+                self.handle_package_tar_gz_post(path, params, headers, database_path)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
@@ -314,6 +320,7 @@ class ClientHandlerFiber(Fiber):
 
     def handle_package_tar_gz_post(self,
                                    path: string,
+                                   params: {string: string},
                                    headers: {string: string},
                                    database_path: string):
         content_length = u32(headers["Content-Length"])
@@ -352,8 +359,21 @@ class ClientHandlerFiber(Fiber):
         package = self.database.get_package(package_name)
 
         if package is None:
-            self.database.create_package(package_name)
+            self.database.create_package(package_name, create_access_token())
             package = self.database.get_package(package_name)
+            response_data = f"{{\"token\": \"{package.access_token}\"}}"
+        else:
+            token = params.get("token", None)
+
+            if token is None:
+                self.write_response(Status.BadRequest)
+                return
+
+            if token != package.access_token:
+                self.write_response(Status.Unauthorized)
+                return
+
+            response_data = ""
 
         self.database.add_package_release(package, version, description)
         release = self.database.get_package_release(package, version)
@@ -370,7 +390,7 @@ class ClientHandlerFiber(Fiber):
 
         run(f"mv {fiber_path} {database_path}")
         self.generate_package_documentation(package_name, version)
-        self.write_response(Status.Ok)
+        self.write_response(Status.Ok, data=response_data)
 
     def handle_mys_tar_gz(self,
                           method: string,
@@ -436,7 +456,10 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def write_response(self, status: Status, headers: {string: string} = {}):
+    def write_response(self,
+                       status: Status,
+                       headers: {string: string} = {},
+                       data: string = None):
         status_string = _STATUS_STRINGS[i64(status)]
         print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())
@@ -444,7 +467,12 @@ class ClientHandlerFiber(Fiber):
         for name, value in headers:
             self.client.write(f"{name}: {value}\r\n".to_utf8())
 
-        self.client.write("\r\n".to_utf8())
+        if data is None:
+            self.client.write("\r\n".to_utf8())
+        else:
+            data_bytes = data.to_utf8()
+            self.client.write(f"Content-Length: {len(data_bytes)}\r\n\r\n".to_utf8())
+            self.client.write(data_bytes)
 
     def write_static_response_ok(self, path: string):
         if path.ends_with(".html"):

@@ -1,0 +1,15 @@
+from random.crypto import randbytes
+
+def create_access_token() -> string:
+    return randbytes(32).to_hex()
+
+def parse_params(value: string) -> {string: string}:
+    params: {string: string} = {}
+
+    for param in value.split('&'):
+        parts = param.split('=')
+
+        if len(parts) == 2:
+            params[parts[0]] = parts[1]
+
+    return params
