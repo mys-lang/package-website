@@ -93,7 +93,11 @@ Systemd service
    WorkingDirectory=/home/mys
 
    [Install]
+   WantedBy=multi-user.target
+
+Enable is for start at boot.
 
 .. code-block::
 
-   $ systemctl start mys-lang.org
+   $ sudo systemctl start mys-lang.org
+   $ sudo systemctl enable mys-lang.org
