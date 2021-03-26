@@ -7,7 +7,7 @@ class Package:
     name: string
     latest_release: Release
     releases: [Release]
-    access_token: string
+    token: string
 
 class Release:
     release_id: i64
@@ -16,7 +16,7 @@ class Release:
 
 class Mys:
     latest_release: MysRelease
-    access_token: string
+    token: string
 
 class MysRelease:
     release_id: i64
@@ -24,6 +24,7 @@ class MysRelease:
 
 class Database:
     _database: SqliteDatabase
+    _create_mys: Statement
     _modify_mys: Statement
     _get_mys: Statement
     _get_mys_release: Statement
@@ -47,8 +48,8 @@ class Database:
 
         self._database.execute("CREATE TABLE IF NOT EXISTS mys("
                                "mys_id INTEGER PRIMARY KEY,"
-                               "latest_release_id INTEGER,"
-                               "access_token TEXT"
+                               "latest_release_id INTEGER DEFAULT -1,"
+                               "token TEXT NOT NULL"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS mys_releases("
                                "release_id INTEGER PRIMARY KEY,"
@@ -58,7 +59,7 @@ class Database:
                                "package_id INTEGER PRIMARY KEY,"
                                "name TEXT NOT NULL UNIQUE,"
                                "latest_release_id INTEGER DEFAULT -1,"
-                               "access_token TEXT NOT NULL"
+                               "token TEXT NOT NULL"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS releases("
                                "release_id INTEGER PRIMARY KEY,"
@@ -72,11 +73,8 @@ class Database:
         statement.fetch()
         print("Number of packages:", statement.column_int(0))
 
-        self._database.execute(
-            "INSERT INTO mys (latest_release_id) "
-            "SELECT -1 "
-            "WHERE NOT EXISTS (SELECT * FROM mys)")
-
+        self._create_mys = self._database.prepare(
+            "INSERT INTO mys (token) VALUES(?)")
         self._modify_mys = self._database.prepare(
             "UPDATE mys SET latest_release_id = ?")
         self._get_mys = self._database.prepare("SELECT * FROM mys")
@@ -97,7 +95,7 @@ class Database:
         self._get_package_releases = self._database.prepare(
             "SELECT * FROM releases WHERE package_id == ?")
         self._create_package = self._database.prepare(
-            "INSERT INTO packages (name, access_token) VALUES(?, ?)")
+            "INSERT INTO packages (name, token) VALUES(?, ?)")
         self._modify_package = self._database.prepare(
             "UPDATE packages SET latest_release_id = ? WHERE name == ?")
         self._add_package_release = self._database.prepare(
@@ -114,9 +112,9 @@ class Database:
 
         return f"{self.root_directory}/{path}"
 
-    def create_package(self, name: string, access_token: string):
+    def create_package(self, name: string, token: string):
         self._create_package.bind_string(1, name)
-        self._create_package.bind_string(2, access_token)
+        self._create_package.bind_string(2, token)
         self._create_package.execute()
 
     def modify_package(self, package: Package, latest_release: Release):
@@ -187,25 +185,33 @@ class Database:
 
         return release
 
+    def create_mys(self, token: string):
+        self._create_mys.bind_string(1, token)
+        self._create_mys.execute()
+
     def modify_mys(self, latest_release: MysRelease):
         self._modify_mys.bind_int(1, latest_release.release_id)
         self._modify_mys.execute()
 
     def get_mys(self) -> Mys:
-        self._get_mys.fetch()
-        latest_release_id = self._get_mys.column_int(1)
-        self._get_mys.fetch()
-        mys = Mys(None, None)
+        if not self._get_mys.fetch():
+            return None
 
-        if latest_release_id != -1:
+        latest_release_id = self._get_mys.column_int(1)
+        token = self._get_mys.column_string(2)
+        self._get_mys.fetch()
+
+        if latest_release_id == -1:
+            latest_release: MysRelease = None
+        else:
             self._get_mys_release_by_id.bind_int(1, latest_release_id)
             self._get_mys_release_by_id.fetch()
-            mys.latest_release = MysRelease(
+            latest_release = MysRelease(
                 self._get_mys_release_by_id.column_int(0),
                 self._get_mys_release_by_id.column_string(1))
             self._get_mys_release_by_id.fetch()
 
-        return mys
+        return Mys(latest_release, token)
 
     def add_mys_release(self, version: string):
         self._add_mys_release.bind_string(1, version)

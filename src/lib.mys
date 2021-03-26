@@ -1,6 +1,6 @@
 from random.crypto import randbytes
 
-def create_access_token() -> string:
+def create_token() -> string:
     return randbytes(32).to_hex()
 
 def parse_params(value: string) -> {string: string}:

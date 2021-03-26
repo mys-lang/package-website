@@ -58,8 +58,8 @@ class TestCase(systest.TestCase):
     def http_get(self, path):
         return requests.get(f"{BASE_URL}{path}")
 
-    def http_post(self, path, data):
-        return requests.post(f"{BASE_URL}{path}", data=data)
+    def http_post(self, path, data, params=None):
+        return requests.post(f"{BASE_URL}{path}", data=data, params=params)
 
 
 class FreshDatabaseTest(TestCase):
@@ -85,6 +85,7 @@ class MysTest(TestCase):
 
         response = self.http_post("/mys-0.227.0.tar.gz", data)
         self.assert_equal(response.status_code, 200)
+        token = response.json()['token']
 
         # Index exists.
         response = self.http_get("/")
@@ -93,8 +94,11 @@ class MysTest(TestCase):
 
         # Upload the same release a few more times.
         for _ in range(3):
-            response = self.http_post("/mys-0.227.0.tar.gz", data)
+            response = self.http_post("/mys-0.227.0.tar.gz",
+                                      data,
+                                      params={'token': token})
             self.assert_equal(response.status_code, 200)
+            self.assert_equal(response.text, '')
 
         # Index still exists.
         response = self.http_get("/")

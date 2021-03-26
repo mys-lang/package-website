@@ -1,0 +1,41 @@
+class LatestVersionFinder:
+    latest: string
+    _latest: (i64, i64, i64)
+
+    def __init__(self):
+        self.latest = None
+
+    def add(self, version: string):
+        mo = version.match(re"^(\d+)\.(\d+)\.(\d+)$")
+
+        if mo is None:
+            return
+
+        major = i64(mo.group(1))
+        minor = i64(mo.group(2))
+        revision = i64(mo.group(3))
+
+        if self.latest is None:
+            self.latest = version
+            self._latest = (major, minor, revision)
+
+            return
+
+        if major < self._latest[0]:
+            return
+        elif major == self._latest[0]:
+            if minor < self._latest[1]:
+                return
+            elif minor == self._latest[1]:
+                if revision < self._latest[2]:
+                    return
+
+        self.latest = version
+        self._latest = (major, minor, revision)
+
+def is_later_version(version: string, latest_version: string) -> bool:
+    finder = LatestVersionFinder()
+    finder.add(version)
+    finder.add(latest_version)
+
+    return finder.latest == version

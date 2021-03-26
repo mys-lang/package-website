@@ -18,8 +18,9 @@ from toml import decode as toml_decode
 from toml import Value as TomlValue
 from fiber import Fiber
 from fiber import Event
-from . import create_access_token
+from . import create_token
 from . import parse_params
+from .version import is_later_version
 
 class ReadError(Error):
     pass
@@ -160,7 +161,7 @@ class ClientHandlerFiber(Fiber):
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         elif path.match(re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
-            self.handle_mys_tar_gz(method, path, headers)
+            self.handle_mys_tar_gz(method, path, params, headers)
         elif path == "/favicon.ico":
             self.handle_static_file(method, path)
         elif path == "/standard-library.html":
@@ -173,7 +174,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 mys = self.database.get_mys()
 
-                if mys.latest_release is not None:
+                if mys is not None:
                     self.handle_mys(method, "/index.html")
                 else:
                     self.write_response(Status.Ok)
@@ -301,7 +302,7 @@ class ClientHandlerFiber(Fiber):
                 package_name = path[9:-14]
                 package = self.database.get_package(package_name)
 
-                if package is not None and package.latest_release is not None:
+                if package is not None:
                     version = package.latest_release.version
                     path = f"package/{package_name}-{version}.tar.gz"
                     self.handle_package_tar_gz_get(self.database.make_path(path))
@@ -318,16 +319,15 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_package_tar_gz_post(self,
-                                   path: string,
-                                   params: {string: string},
-                                   headers: {string: string},
-                                   database_path: string):
+    def save_post_data_to_file(self,
+                               max_size: i64,
+                               headers: {string: string}) -> string:
         content_length = u32(headers["Content-Length"])
 
-        if content_length > 1_000_000:
+        if content_length > 50_000_000:
             self.write_response(Status.BadRequest)
-            return
+
+            return None
 
         expect = headers.get("Expect", "")
 
@@ -338,6 +338,36 @@ class ClientHandlerFiber(Fiber):
         self.create_root_directory()
         fiber_path = self.make_path("archive.tar.gz")
         BinaryFile(fiber_path, "w").write(data)
+
+        return fiber_path
+
+    def validate_token(self,
+                       params: {string: string},
+                       expected_token: string) -> bool:
+        token = params.get("token", None)
+
+        if token is None:
+            self.write_response(Status.BadRequest)
+
+            return False
+
+        if token != expected_token:
+            self.write_response(Status.Unauthorized)
+
+            return False
+
+        return True
+
+    def handle_package_tar_gz_post(self,
+                                   path: string,
+                                   params: {string: string},
+                                   headers: {string: string},
+                                   database_path: string):
+        fiber_path = self.save_post_data_to_file(1_000_000, headers)
+
+        if fiber_path is None:
+            return
+
         tar(fiber_path,
             extract=True,
             strip_components=1,
@@ -359,18 +389,11 @@ class ClientHandlerFiber(Fiber):
         package = self.database.get_package(package_name)
 
         if package is None:
-            self.database.create_package(package_name, create_access_token())
+            self.database.create_package(package_name, create_token())
             package = self.database.get_package(package_name)
-            response_data = f"{{\"token\": \"{package.access_token}\"}}"
+            response_data = f"{{\"token\": \"{package.token}\"}}"
         else:
-            token = params.get("token", None)
-
-            if token is None:
-                self.write_response(Status.BadRequest)
-                return
-
-            if token != package.access_token:
-                self.write_response(Status.Unauthorized)
+            if not self.validate_token(params, package.token):
                 return
 
             response_data = ""
@@ -380,13 +403,8 @@ class ClientHandlerFiber(Fiber):
 
         if package.latest_release is None:
             self.database.modify_package(package, release)
-        else:
-            finder = LatestVersionFinder()
-            finder.add(version)
-            finder.add(package.latest_release.version)
-
-            if finder.latest == version:
-                self.database.modify_package(package, release)
+        elif is_later_version(version, package.latest_release.version):
+            self.database.modify_package(package, release)
 
         run(f"mv {fiber_path} {database_path}")
         self.generate_package_documentation(package_name, version)
@@ -395,53 +413,53 @@ class ClientHandlerFiber(Fiber):
     def handle_mys_tar_gz(self,
                           method: string,
                           path: string,
+                          params: {string: string},
                           headers: {string: string}):
         database_path = self.database.make_path(path[1:])
 
         match method:
             case "POST":
-                self.handle_mys_tar_gz_post(path, headers, database_path)
+                self.handle_mys_tar_gz_post(path, params, headers, database_path)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
     def handle_mys_tar_gz_post(self,
                                path: string,
+                               params: {string: string},
                                headers: {string: string},
                                database_path: string):
-        content_length = u32(headers["Content-Length"])
+        fiber_path = self.save_post_data_to_file(50_000_000, headers)
 
-        if content_length > 50_000_000:
-            self.write_response(Status.BadRequest)
+        if fiber_path is None:
             return
 
-        expect = headers.get("Expect", "")
-
-        if expect == "100-continue":
-            self.write_response(Status.Continue)
-
-        data = self.client.read(content_length)
-        fiber_path = self.make_path("archive.tar.gz")
-        BinaryFile(fiber_path, "w").write(data)
         version = path[5:-7]
         rm(self.database.make_path(version), recursive=True, force=True)
         tar(fiber_path,
             extract=True,
             output_directory=self.database.root_directory)
+
         mys = self.database.get_mys()
+
+        if mys is None:
+            self.database.create_mys(create_token())
+            mys = self.database.get_mys()
+            response_data = f"{{\"token\": \"{mys.token}\"}}"
+        else:
+            if not self.validate_token(params, mys.token):
+                return
+
+            response_data = ""
+
         self.database.add_mys_release(version)
         release = self.database.get_mys_release(version)
 
         if mys.latest_release is None:
             self.database.modify_mys(release)
-        else:
-            finder = LatestVersionFinder()
-            finder.add(version)
-            finder.add(mys.latest_release.version)
+        elif is_later_version(version, mys.latest_release.version):
+            self.database.modify_mys(release)
 
-            if finder.latest == version:
-                self.database.modify_mys(release)
-
-        self.write_response(Status.Ok)
+        self.write_response(Status.Ok, data=response_data)
 
     def handle_static_file(self, method: string, path: string):
         match method:
@@ -482,41 +500,6 @@ class ClientHandlerFiber(Fiber):
                                 headers={
                                     "Cache-Control": "public, max-age=7200"
                                 })
-
-class LatestVersionFinder:
-    latest: string
-    _latest: (i64, i64, i64)
-
-    def __init__(self):
-        self.latest = None
-
-    def add(self, version: string):
-        mo = version.match(re"^(\d+)\.(\d+)\.(\d+)$")
-
-        if mo is None:
-            return
-
-        major = i64(mo.group(1))
-        minor = i64(mo.group(2))
-        revision = i64(mo.group(3))
-
-        if self.latest is None:
-            self.latest = version
-            self._latest = (major, minor, revision)
-
-            return
-
-        if major < self._latest[0]:
-            return
-        elif major == self._latest[0]:
-            if minor < self._latest[1]:
-                return
-            elif minor == self._latest[1]:
-                if revision < self._latest[2]:
-                    return
-
-        self.latest = version
-        self._latest = (major, minor, revision)
 
 def main(argv: [string]):
     parser = Parser("website")
