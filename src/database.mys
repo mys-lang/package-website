@@ -31,6 +31,8 @@ class Database:
     _get_mys_release_by_id: Statement
     _add_mys_release: Statement
     _create_package: Statement
+    _delete_package: Statement
+    _delete_all_package_releases: Statement
     _modify_package: Statement
     _get_package: Statement
     _get_packages: Statement
@@ -96,6 +98,10 @@ class Database:
             "SELECT * FROM releases WHERE package_id == ?")
         self._create_package = self._database.prepare(
             "INSERT INTO packages (name, token) VALUES(?, ?)")
+        self._delete_package = self._database.prepare(
+            "DELETE FROM packages WHERE name = ?")
+        self._delete_all_package_releases = self._database.prepare(
+            "DELETE FROM releases WHERE package_id = ?")
         self._modify_package = self._database.prepare(
             "UPDATE packages SET latest_release_id = ? WHERE name == ?")
         self._add_package_release = self._database.prepare(
@@ -116,6 +122,12 @@ class Database:
         self._create_package.bind_string(1, name)
         self._create_package.bind_string(2, token)
         self._create_package.execute()
+
+    def delete_package(self, package: Package):
+        self._delete_package.bind_string(1, package.name)
+        self._delete_package.execute()
+        self._delete_all_package_releases.bind_int(1, package.package_id)
+        self._delete_package.execute()
 
     def modify_package(self, package: Package, latest_release: Release):
         self._modify_package.bind_int(1, latest_release.release_id)

@@ -61,6 +61,9 @@ class TestCase(systest.TestCase):
     def http_post(self, path, data, params=None):
         return requests.post(f"{BASE_URL}{path}", data=data, params=params)
 
+    def http_delete(self, path, params=None):
+        return requests.delete(f"{BASE_URL}{path}", params=params)
+
 
 class FreshDatabaseTest(TestCase):
     """Test with a fresh database.
@@ -176,6 +179,46 @@ class PackageTest(TestCase):
                         "-a", BASE_URL,
                         "-t", token],
                        check=True)
+
+        # Try to delete the package with wrong token.
+        response = self.http_delete(f'/package/foo', params={'token': 64 * '0'})
+        self.assert_equal(response.status_code, 401)
+
+        # Package page.
+        response = self.http_get("/package/foo/0.1.0/index.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('Foo 0.1.0 documentation', response.text)
+
+        # Delete the package.
+        response = self.http_delete(f'/package/foo', params={'token': token})
+        self.assert_equal(response.status_code, 200)
+
+        # Package page does not exist.
+        response = self.http_get("/package/foo/0.1.0/index.html")
+        self.assert_equal(response.status_code, 404)
+
+        response = self.http_get("/standard-library.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_not_in(package_list_item, response.text)
+
+        # Download when not present.
+        response = self.http_get("/package/foo-0.1.0.tar.gz")
+        self.assert_equal(response.status_code, 404)
+
+        # Upload again.
+        proc = subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL],
+                              check=True,
+                              capture_output=True,
+                              text=True)
+        assert proc.stdout.rstrip()[-64:] != token
+
+        # Download it.
+        with open('foo/build/publish/foo-0.1.0.tar.gz', 'rb') as fin:
+            expected_data = fin.read()
+
+        response = self.http_get("/package/foo-0.1.0.tar.gz")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.content, expected_data)
 
 
 class PackageNoDocTest(TestCase):
