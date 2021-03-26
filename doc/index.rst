@@ -71,3 +71,29 @@ Report quotas:
 .. code-block:: text
 
    $ sudo repquota -u -s -t /
+
+Systemd service
+---------------
+
+/etc/systemd/system/mys-lang.org.service
+
+.. code-block::
+
+   [Unit]
+   Description=Mys website
+   After=network.target
+   StartLimitIntervalSec=0
+
+   [Service]
+   Type=simple
+   Restart=always
+   RestartSec=1
+   User=mys
+   ExecStart=/home/mys/package-website/build/speed/app -d /home/mys/database
+   WorkingDirectory=/home/mys
+
+   [Install]
+
+.. code-block::
+
+   $ systemctl start mys-lang.org
