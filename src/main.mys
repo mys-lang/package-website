@@ -247,8 +247,10 @@ class ClientHandlerFiber(Fiber):
 
     def handle_status(self, method: string, path: string):
         requests = ""
+        total_number_of_requests = 0
 
         for line, count in self.statistics.requests:
+            total_number_of_requests += count
             pos = line.find(' ')
             method = line[:pos]
             path = line[pos + 1:]
@@ -263,7 +265,7 @@ class ClientHandlerFiber(Fiber):
                 "  <h2>Start date</h2>\n"
                 f"    {self.statistics.start_date}\n"
                 "  <h2>Requests</h2>\n"
-                f"  Total number of requests: {len(self.statistics.requests)}\n"
+                f"  Total number of requests: {total_number_of_requests}\n"
                 "  </br>\n"
                 "  </br>\n"
                 "  <table>\n"
