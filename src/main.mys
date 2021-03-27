@@ -150,9 +150,9 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/":
             self.handle_index(method)
-        elif path.match(re"/\d+\.\d+\.\d+[\w-]*/standard-library.html") is not None:
+        elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html") is not None:
             self.handle_mys_version_standard_library(method, path)
-        elif path.match(re"/\d+\.\d+\.\d+[\w-]*/") is not None:
+        elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/") is not None:
             self.handle_mys_version(method, path)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
             self.handle_package_tar_gz(method, path, params, headers)
@@ -160,6 +160,8 @@ class ClientHandlerFiber(Fiber):
             self.handle_package_latest_tar_gz(method, path)
         elif path.match(re"^/package/[\w-]+$") is not None:
             self.handle_package_operations(method, path, params)
+        elif path.match(re"^/package/[\w-]+/latest/index.html") is not None:
+            self.handle_package_latest(method, path)
         elif path.starts_with("/package/"):
             self.handle_package(method, path)
         elif path.match(re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
@@ -195,9 +197,8 @@ class ClientHandlerFiber(Fiber):
 
                     for package_name in self.database.get_packages():
                         package = self.database.get_package(package_name)
-                        version = package.latest_release.version
                         database_doc_path = (
-                            f"/package/{package_name}/{version}/index.html")
+                            f"/package/{package_name}/latest/index.html")
                         packages += (
                             f"<li><p><a href=\"{database_doc_path}\">"
                             f"{package_name}</a> - "
@@ -275,6 +276,17 @@ class ClientHandlerFiber(Fiber):
                 self.write_response(Status.Ok)
             case _:
                 self.write_response(Status.MethodNotAllowed)
+
+    def handle_package_latest(self, method: string, path: string):
+        package_name = path[9:-18]
+        print(package_name)
+        package = self.database.get_package(package_name)
+
+        if package is not None:
+            path = path.replace("latest", package.latest_release.version)
+            self.handle_mys_version(method, path)
+        else:
+            self.write_response(Status.NotFound)
 
     def handle_package(self, method: string, path: string):
         match method:

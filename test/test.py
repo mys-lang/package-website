@@ -119,11 +119,14 @@ class PackageTest(TestCase):
         subprocess.run(["mys", "new", "foo"], check=True)
 
         package_list_item = (
-            '<li><p><a href="/package/foo/0.1.0/index.html">foo</a> - '
+            '<li><p><a href="/package/foo/latest/index.html">foo</a> - '
             'Add a short package description here.</p></li>')
 
         # Package page does not exist.
         response = self.http_get("/package/foo/0.1.0/index.html")
+        self.assert_equal(response.status_code, 404)
+
+        response = self.http_get("/package/foo/latest/index.html")
         self.assert_equal(response.status_code, 404)
 
         response = self.http_get("/standard-library.html")
@@ -155,6 +158,10 @@ class PackageTest(TestCase):
 
         # Package page.
         response = self.http_get("/package/foo/0.1.0/index.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('Foo 0.1.0 documentation', response.text)
+
+        response = self.http_get("/package/foo/latest/index.html")
         self.assert_equal(response.status_code, 200)
         self.assert_in('Foo 0.1.0 documentation', response.text)
 
