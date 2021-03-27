@@ -1,6 +1,6 @@
 [package]
 name = "website"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "The Mys programming language website."
 
@@ -12,3 +12,4 @@ sqlite = "latest"
 toml = "latest"
 string = "latest"
 random = "latest"
+time = "latest"

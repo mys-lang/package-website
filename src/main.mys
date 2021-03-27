@@ -21,6 +21,7 @@ from fiber import Event
 from . import create_token
 from . import parse_params
 from .version import is_later_version
+from time import LocalDateTime
 
 class ReadError(Error):
     pass
@@ -47,6 +48,7 @@ _STATUS_STRINGS: {i64: string} = {
 
 class ClientHandlerFiber(Fiber):
     database: Database
+    statistics: Statistics
     event: Event
     client: Client
     client_handlers: [ClientHandlerFiber]
@@ -54,9 +56,11 @@ class ClientHandlerFiber(Fiber):
 
     def __init__(self,
                  database: Database,
+                 statistics: Statistics,
                  client_handlers: [ClientHandlerFiber],
                  index: i64):
         self.database = database
+        self.statistics = statistics
         self.client_handlers = client_handlers
         self.root_directory = f".website/{index}"
         self.event = Event()
@@ -143,6 +147,7 @@ class ClientHandlerFiber(Fiber):
             return
 
         method, path, params_string = request
+        self.statistics.handle_request(method, path)
         params = parse_params(params_string)
         headers = self.read_headers()
 
@@ -170,6 +175,8 @@ class ClientHandlerFiber(Fiber):
             self.handle_static_file(method, path)
         elif path == "/standard-library.html":
             self.handle_mys_standard_library(method, path)
+        elif path == "/status.html":
+            self.handle_status(method, path)
         else:
             self.handle_mys(method, path)
 
@@ -237,6 +244,35 @@ class ClientHandlerFiber(Fiber):
             self.handle_mys_version_standard_library(method, path)
         else:
             self.write_response(Status.NotFound)
+
+    def handle_status(self, method: string, path: string):
+        requests = ""
+
+        for line, count in self.statistics.requests:
+            pos = line.find(' ')
+            method = line[:pos]
+            path = line[pos + 1:]
+            requests += ("    <tr>\n"
+                         f"      <td>{path}</td>\n"
+                         f"      <td>{method}</td>\n"
+                         f"      <td>{count}</td>\n"
+                         "    </tr>\n")
+
+        data = ("<html>\n"
+                "  <h1>Status</h1>\n"
+                "  <h2>Start date</h2>\n"
+                f"    {self.statistics.start_date}\n"
+                "  <h2>Requests</h2>\n"
+                "  <table>\n"
+                "    <tr>\n"
+                "      <th>Path</th>\n"
+                "      <th>Method</th>\n"
+                "      <th>Count</th>\n"
+                "    </tr>\n"
+                f"{requests}"
+                "  </table>\n"
+                "</html>")
+        self.write_response(Status.Ok, data=data)
 
     def handle_mys(self, method: string, path: string):
         mys = self.database.get_mys()
@@ -545,6 +581,22 @@ class ClientHandlerFiber(Fiber):
                                     "Cache-Control": "public, max-age=7200"
                                 })
 
+class Statistics:
+    start_date: LocalDateTime
+    requests: {string: i64}
+
+    def __init__(self):
+        self.start_date = LocalDateTime()
+        self.requests = {}
+
+    def handle_request(self, method: string, path: string):
+        key = f"{method} {path}"
+
+        if key in self.requests:
+            self.requests[key] += 1
+        else:
+            self.requests[key] = 1
+
 def main(argv: [string]):
     parser = Parser("website")
     parser.add_option("--port",
@@ -558,11 +610,15 @@ def main(argv: [string]):
     args = parser.parse(argv)
 
     database = Database(args.value_of("--database-directory"))
+    statistics = Statistics()
 
     client_handlers: [ClientHandlerFiber] = []
 
     for i in range(20):
-        client_handlers += ClientHandlerFiber(database, client_handlers, i)
+        client_handlers += ClientHandlerFiber(database,
+                                              statistics,
+                                              client_handlers,
+                                              i)
         client_handlers[-1].start()
 
     server = Server()

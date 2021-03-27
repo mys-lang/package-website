@@ -248,6 +248,18 @@ class PackageNoDocTest(TestCase):
         self.assert_in('No package documentation found!', response.text)
 
 
+class StatusTest(TestCase):
+
+    def run(self):
+        response = self.http_get("/status.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('<h1>Status</h1>', response.text)
+        self.assert_in('<h2>Start date</h2>', response.text)
+        self.assert_in('LocalDateTime(year', response.text)
+        self.assert_in('<h2>Requests<\h2>', response.text)
+        self.assert_in('<td>GET</td>', response.text)
+
+
 def main():
     sequencer = systest.setup("Mys website",
                               console_log_level=logging.DEBUG)
@@ -265,7 +277,8 @@ def main():
         FreshDatabaseTest(),
         MysTest(),
         PackageTest(),
-        PackageNoDocTest()
+        PackageNoDocTest(),
+        StatusTest()
     )
 
     website.close()
