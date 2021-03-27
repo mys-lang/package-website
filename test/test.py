@@ -256,7 +256,7 @@ class StatusTest(TestCase):
         self.assert_in('<h1>Status</h1>', response.text)
         self.assert_in('<h2>Start date</h2>', response.text)
         self.assert_in('LocalDateTime(year', response.text)
-        self.assert_in('<h2>Requests<\h2>', response.text)
+        self.assert_in('<h2>Requests</h2>', response.text)
         self.assert_in('<td>GET</td>', response.text)
 
 
