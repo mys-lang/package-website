@@ -268,18 +268,18 @@ class ClientHandlerFiber(Fiber):
                         else:
                             requests_lines += "    <tr class=\"row-odd\">"
 
-                        requests_lines += f"      <td><p>{request_path}</p></td>"
-                        requests_lines += f"      <td><p>{method}</p></td>"
-                        requests_lines += f"      <td><p>{count}</p></td>"
+                        requests_lines += f"      <td>{request_path}</td>"
+                        requests_lines += f"      <td>{method}</td>"
+                        requests_lines += f"      <td>{count}</td>"
                         requests_lines += "    </tr>"
                         row_index += 1
 
                     requests = "\n".join([
                         "<table class=\"docutils align-default\" id=\"requestsTable\">",
                         "  <colgroup>",
-                        "    <col style=\"width: 29%\" />",
-                        "    <col style=\"width: 38%\" />",
-                        "    <col style=\"width: 33%\" />",
+                        "    <col/>",
+                        "    <col/>",
+                        "    <col/>",
                         "  </colgroup>",
                         "  <thead>",
                         "    <tr class=\"row-odd\">",
@@ -303,15 +303,15 @@ class ClientHandlerFiber(Fiber):
                         "    rows = table.rows;",
                         "    for (i = 1; i < (rows.length - 1); i++) {",
                         "      shouldSwitch = false;",
-                        "      x = rows[i].getElementsByTagName(\"TD\")[n];",
-                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n];",
+                        "      x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;",
+                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n].innerHTML;",
                         "      if (dir == \"asc\") {",
-                        "        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {",
+                        "        if (((n < 2) && (x > y)) || ((n == 2) && (parseInt(x) > parseInt(y)))) {",
                         "          shouldSwitch = true;",
                         "          break;",
                         "        }",
                         "      } else if (dir == \"desc\") {",
-                        "        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {",
+                        "        if (((n < 2) && (x < y)) || ((n == 2) && (parseInt(x) < parseInt(y)))) {",
                         "          shouldSwitch = true;",
                         "          break;",
                         "        }",
