@@ -263,8 +263,8 @@ class ClientHandlerFiber(Fiber):
         data = ("<html>\n"
                 "  <title>Mys website status</title>\n"
                 "  <h1>Status</h1>\n"
-                "  <h2>Start date</h2>\n"
-                f"    {self.statistics.start_date}\n"
+                "  <h2>Start date and time</h2>\n"
+                f"    {self.statistics.start_date_time}\n"
                 "  <h2>Requests</h2>\n"
                 f"  Total number of requests: {total_number_of_requests}\n"
                 "  </br>\n"
@@ -626,11 +626,11 @@ class ClientHandlerFiber(Fiber):
                                 })
 
 class Statistics:
-    start_date: LocalDateTime
+    start_date_time: LocalDateTime
     requests: {string: i64}
 
     def __init__(self):
-        self.start_date = LocalDateTime()
+        self.start_date_time = LocalDateTime()
         self.requests = {}
 
     def handle_request(self, method: string, path: string):

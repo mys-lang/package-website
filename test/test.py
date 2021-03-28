@@ -254,8 +254,7 @@ class StatusTest(TestCase):
         response = self.http_get("/status.html")
         self.assert_equal(response.status_code, 200)
         self.assert_in('<h1>Status</h1>', response.text)
-        self.assert_in('<h2>Start date</h2>', response.text)
-        self.assert_in('LocalDateTime(year', response.text)
+        self.assert_in('<h2>Start date and time</h2>', response.text)
         self.assert_in('<h2>Requests</h2>', response.text)
         self.assert_in('<td>GET</td>', response.text)
 
