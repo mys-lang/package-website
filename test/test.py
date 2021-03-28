@@ -248,15 +248,16 @@ class PackageNoDocTest(TestCase):
         self.assert_in('No package documentation found!', response.text)
 
 
-class StatusTest(TestCase):
+class StatisticsTest(TestCase):
 
     def run(self):
-        response = self.http_get("/status.html")
+        response = self.http_get("/statistics.html")
         self.assert_equal(response.status_code, 200)
-        self.assert_in('<h1>Status</h1>', response.text)
-        self.assert_in('<h2>Start date and time</h2>', response.text)
-        self.assert_in('<h2>Requests</h2>', response.text)
-        self.assert_in('<td>GET</td>', response.text)
+        self.assert_in('Statistics', response.text)
+        self.assert_in('Start date and time', response.text)
+        self.assert_in('Requests', response.text)
+        self.assert_in('GET', response.text)
+        self.assert_in('POST', response.text)
 
 
 def main():
@@ -277,7 +278,7 @@ def main():
         MysTest(),
         PackageTest(),
         PackageNoDocTest(),
-        StatusTest()
+        StatisticsTest()
     )
 
     website.close()

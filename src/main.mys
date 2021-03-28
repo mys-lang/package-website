@@ -157,6 +157,8 @@ class ClientHandlerFiber(Fiber):
             self.handle_index(method)
         elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html") is not None:
             self.handle_mys_version_standard_library(method, path)
+        elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/statistics.html") is not None:
+            self.handle_mys_version_statistics(method, path)
         elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/") is not None:
             self.handle_mys_version(method, path)
         elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
@@ -175,8 +177,8 @@ class ClientHandlerFiber(Fiber):
             self.handle_static_file(method, path)
         elif path == "/standard-library.html":
             self.handle_mys_standard_library(method, path)
-        elif path == "/status.html":
-            self.handle_status(method, path)
+        elif path == "/statistics.html":
+            self.handle_mys_statistics(method, path)
         else:
             self.handle_mys(method, path)
 
@@ -245,78 +247,112 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_status(self, method: string, path: string):
-        requests: [string] = []
-        total_number_of_requests = 0
+    def handle_mys_version_statistics(self, method: string, path: string):
+        match method:
+            case "GET":
+                path = self.database.make_path(path[1:])
 
-        for line, count in self.statistics.requests:
-            total_number_of_requests += count
-            pos = line.find(' ')
-            method = line[:pos]
-            path = line[pos + 1:]
-            requests += ("    <tr>\n"
-                         f"      <td>{path}</td>\n"
-                         f"      <td>{method}</td>\n"
-                         f"      <td>{count}</td>\n"
-                         "    </tr>\n")
+                if exists(path):
+                    total_number_of_requests = 0
+                    requests_lines: [string] = []
+                    row_index = 0
 
-        data = ("<html>\n"
-                "  <title>Mys website status</title>\n"
-                "  <h1>Status</h1>\n"
-                "  <h2>Start date and time</h2>\n"
-                f"    {self.statistics.start_date_time}\n"
-                "  <h2>Requests</h2>\n"
-                f"  Total number of requests: {total_number_of_requests}\n"
-                "  </br>\n"
-                "  </br>\n"
-                "  <table id=\"requestsTable\">\n"
-                "    <tr>\n"
-                "      <th onclick=\"sortTable(0)\">Path</th>\n"
-                "      <th onclick=\"sortTable(1)\">Method</th>\n"
-                "      <th onclick=\"sortTable(2)\">Count</th>\n"
-                "    </tr>\n"
-                f"""{"".join(requests)}"""
-                "  </table>\n"
-                "  <script>\n"
-                "  function sortTable(n) {\n"
-                "    var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;\n"
-                "    table = document.getElementById(\"requestsTable\");\n"
-                "    switching = true;\n"
-                "    dir = \"asc\";\n"
-                "    while (switching) {\n"
-                "      switching = false;\n"
-                "      rows = table.rows;\n"
-                "      for (i = 1; i < (rows.length - 1); i++) {\n"
-                "        shouldSwitch = false;\n"
-                "        x = rows[i].getElementsByTagName(\"TD\")[n];\n"
-                "        y = rows[i + 1].getElementsByTagName(\"TD\")[n];\n"
-                "        if (dir == \"asc\") {\n"
-                "          if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {\n"
-                "            shouldSwitch = true;\n"
-                "            break;\n"
-                "          }\n"
-                "        } else if (dir == \"desc\") {\n"
-                "          if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {\n"
-                "            shouldSwitch = true;\n"
-                "            break;\n"
-                "          }\n"
-                "        }\n"
-                "      }\n"
-                "      if (shouldSwitch) {\n"
-                "        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);\n"
-                "        switching = true;\n"
-                "        switchcount++;\n"
-                "      } else {\n"
-                "        if (switchcount == 0 && dir == \"asc\") {\n"
-                "          dir = \"desc\";\n"
-                "          switching = true;\n"
-                "        }\n"
-                "      }\n"
-                "    }\n"
-                "  }\n"
-                "  </script>\n"
-                "</html>")
-        self.write_response(Status.Ok, data=data)
+                    for line, count in self.statistics.requests:
+                        total_number_of_requests += count
+                        pos = line.find(' ')
+                        method = line[:pos]
+                        request_path = line[pos + 1:]
+
+                        if (row_index % 0) == 0:
+                            requests_lines += "    <tr class=\"row-even\">"
+                        else:
+                            requests_lines += "    <tr class=\"row-odd\">"
+
+                        requests_lines += f"      <td><p>{request_path}</p></td>"
+                        requests_lines += f"      <td><p>{method}</p></td>"
+                        requests_lines += f"      <td><p>{count}</p></td>"
+                        requests_lines += "    </tr>"
+                        row_index += 1
+
+                    requests = "\n".join([
+                        "<table class=\"docutils align-default\" id=\"requestsTable\">",
+                        "  <colgroup>",
+                        "    <col style=\"width: 29%\" />",
+                        "    <col style=\"width: 38%\" />",
+                        "    <col style=\"width: 33%\" />",
+                        "  </colgroup>",
+                        "  <thead>",
+                        "    <tr class=\"row-odd\">",
+                        "      <th class=\"head\" onclick=\"sortTable(0)\"><p>Path</p></th>",
+                        "      <th class=\"head\" onclick=\"sortTable(1)\"><p>Method</p></th>",
+                        "      <th class=\"head\" onclick=\"sortTable(2)\"><p>Count</p></th>",
+                        "    </tr>",
+                        "  </thead>",
+                        "  <tbody>"
+                    ] + requests_lines + [
+                        "  </tbody>",
+                        "</table>",
+                        "<script>",
+                        "function sortTable(n) {",
+                        "  var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;",
+                        "  table = document.getElementById(\"requestsTable\");",
+                        "  switching = true;",
+                        "  dir = \"asc\";",
+                        "  while (switching) {",
+                        "    switching = false;",
+                        "    rows = table.rows;",
+                        "    for (i = 1; i < (rows.length - 1); i++) {",
+                        "      shouldSwitch = false;",
+                        "      x = rows[i].getElementsByTagName(\"TD\")[n];",
+                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n];",
+                        "      if (dir == \"asc\") {",
+                        "        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {",
+                        "          shouldSwitch = true;",
+                        "          break;",
+                        "        }",
+                        "      } else if (dir == \"desc\") {",
+                        "        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {",
+                        "          shouldSwitch = true;",
+                        "          break;",
+                        "        }",
+                        "      }",
+                        "    }",
+                        "    if (shouldSwitch) {",
+                        "      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);",
+                        "      switching = true;",
+                        "      switchcount++;",
+                        "    } else {",
+                        "      if (switchcount == 0 && dir == \"asc\") {",
+                        "        dir = \"desc\";",
+                        "        switching = true;",
+                        "      }",
+                        "    }",
+                        "  }",
+                        "}",
+                        "</script>"
+                    ])
+
+                    self.write_static_response_ok(path)
+                    data = TextFile(path).read()
+                    data = data.replace("{website-start-date-time}",
+                                        str(self.statistics.start_date_time))
+                    data = data.replace("{website-total-number-of-requests}",
+                                        str(total_number_of_requests))
+                    data = data.replace("<p>{website-requests}</p>", requests)
+                    self.client.write(data.to_utf8())
+                else:
+                    self.write_response(Status.NotFound)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    def handle_mys_statistics(self, method: string, path: string):
+        mys = self.database.get_mys()
+
+        if mys is not None:
+            path = f"/{mys.latest_release.version}{path}"
+            self.handle_mys_version_statistics(method, path)
+        else:
+            self.write_response(Status.NotFound)
 
     def handle_mys(self, method: string, path: string):
         mys = self.database.get_mys()
