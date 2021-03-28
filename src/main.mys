@@ -22,6 +22,7 @@ from . import create_token
 from . import parse_params
 from .version import is_later_version
 from time import LocalDateTime
+from string import StringBuilder
 
 class ReadError(Error):
     pass
@@ -254,8 +255,24 @@ class ClientHandlerFiber(Fiber):
 
                 if exists(path):
                     total_number_of_requests = 0
-                    requests_lines: [string] = []
                     row_index = 0
+                    requests = StringBuilder()
+                    requests += (
+                        "<table class=\"docutils align-default\" id=\"requestsTable\">\n"
+                        "  <colgroup>\n"
+                        "    <col/>\n"
+                        "    <col/>\n"
+                        "    <col/>\n"
+                        "  </colgroup>\n"
+                        "  <thead>\n"
+                        "    <tr class=\"row-odd\">\n"
+                        "      <th class=\"head\" onclick=\"sortTable(0)\"><p>Path</p></th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(1)\"><p>Method</p></th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(2)\"><p>Count</p></th>\n"
+                        "    </tr>\n"
+                        "  </thead>\n"
+                        "  <tbody\n>\n"
+                    )
 
                     for line, count in self.statistics.requests:
                         total_number_of_requests += count
@@ -264,73 +281,61 @@ class ClientHandlerFiber(Fiber):
                         request_path = line[pos + 1:]
 
                         if (row_index % 2) == 0:
-                            requests_lines += "    <tr class=\"row-even\">"
+                            requests += "    <tr class=\"row-even\">"
                         else:
-                            requests_lines += "    <tr class=\"row-odd\">"
+                            requests += "    <tr class=\"row-odd\">"
 
-                        requests_lines += f"      <td>{request_path}</td>"
-                        requests_lines += f"      <td>{method}</td>"
-                        requests_lines += f"      <td>{count}</td>"
-                        requests_lines += "    </tr>"
+                        requests += f"      <td>{request_path}</td>"
+                        requests += f"      <td>{method}</td>"
+                        requests += f"      <td>{count}</td>"
+                        requests += "    </tr>"
                         row_index += 1
 
-                    requests = "\n".join([
-                        "<table class=\"docutils align-default\" id=\"requestsTable\">",
-                        "  <colgroup>",
-                        "    <col/>",
-                        "    <col/>",
-                        "    <col/>",
-                        "  </colgroup>",
-                        "  <thead>",
-                        "    <tr class=\"row-odd\">",
-                        "      <th class=\"head\" onclick=\"sortTable(0)\"><p>Path</p></th>",
-                        "      <th class=\"head\" onclick=\"sortTable(1)\"><p>Method</p></th>",
-                        "      <th class=\"head\" onclick=\"sortTable(2)\"><p>Count</p></th>",
-                        "    </tr>",
-                        "  </thead>",
-                        "  <tbody>"
-                    ] + requests_lines + [
-                        "  </tbody>",
-                        "</table>",
-                        "<script>",
-                        "function sortTable(n) {",
-                        "  var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;",
-                        "  table = document.getElementById(\"requestsTable\");",
-                        "  switching = true;",
-                        "  dir = \"asc\";",
-                        "  while (switching) {",
-                        "    switching = false;",
-                        "    rows = table.rows;",
-                        "    for (i = 1; i < (rows.length - 1); i++) {",
-                        "      shouldSwitch = false;",
-                        "      x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;",
-                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n].innerHTML;",
-                        "      if (dir == \"asc\") {",
-                        "        if (((n < 2) && (x > y)) || ((n == 2) && (parseInt(x) > parseInt(y)))) {",
-                        "          shouldSwitch = true;",
-                        "          break;",
-                        "        }",
-                        "      } else if (dir == \"desc\") {",
-                        "        if (((n < 2) && (x < y)) || ((n == 2) && (parseInt(x) < parseInt(y)))) {",
-                        "          shouldSwitch = true;",
-                        "          break;",
-                        "        }",
-                        "      }",
-                        "    }",
-                        "    if (shouldSwitch) {",
-                        "      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);",
-                        "      switching = true;",
-                        "      switchcount++;",
-                        "    } else {",
-                        "      if (switchcount == 0 && dir == \"asc\") {",
-                        "        dir = \"desc\";",
-                        "        switching = true;",
-                        "      }",
-                        "    }",
-                        "  }",
-                        "}",
-                        "</script>"
-                    ])
+                    requests += (
+                        "  </tbody>\n"
+                        "</table>\n"
+                        "<script>\n"
+                        "function sortTable(n) {\n"
+                        "  var table, rows, switching, i, x, y;\n"
+                        "  var shouldSwitch, dir, switchcount = 0;\n"
+                        "  table = document.getElementById(\"requestsTable\");\n"
+                        "  switching = true;\n"
+                        "  dir = \"asc\";\n"
+                        "  while (switching) {\n"
+                        "    switching = false;\n"
+                        "    rows = table.rows;\n"
+                        "    for (i = 1; i < (rows.length - 1); i++) {\n"
+                        "      shouldSwitch = false;\n"
+                        "      x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;\n"
+                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n].innerHTML;\n"
+                        "      if (dir == \"asc\") {\n"
+                        "        if (((n < 2) && (x > y))\n"
+                        "            || ((n == 2) && (parseInt(x) > parseInt(y)))) {\n"
+                        "          shouldSwitch = true;\n"
+                        "          break;\n"
+                        "        }\n"
+                        "      } else if (dir == \"desc\") {\n"
+                        "        if (((n < 2) && (x < y))\n"
+                        "            || ((n == 2) && (parseInt(x) < parseInt(y)))) {\n"
+                        "          shouldSwitch = true;\n"
+                        "          break;\n"
+                        "        }\n"
+                        "      }\n"
+                        "    }\n"
+                        "    if (shouldSwitch) {\n"
+                        "      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);\n"
+                        "      switching = true;\n"
+                        "      switchcount++;\n"
+                        "    } else {\n"
+                        "      if (switchcount == 0 && dir == \"asc\") {\n"
+                        "        dir = \"desc\";\n"
+                        "        switching = true;\n"
+                        "      }\n"
+                        "    }\n"
+                        "  }\n"
+                        "}\n"
+                        "</script>\n"
+                    )
 
                     self.write_static_response_ok(path)
                     data = TextFile(path).read()
@@ -338,7 +343,8 @@ class ClientHandlerFiber(Fiber):
                                         str(self.statistics.start_date_time))
                     data = data.replace("{website-total-number-of-requests}",
                                         str(total_number_of_requests))
-                    data = data.replace("<p>{website-requests}</p>", requests)
+                    data = data.replace("<p>{website-requests}</p>",
+                                        requests.to_string())
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)
