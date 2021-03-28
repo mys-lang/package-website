@@ -263,7 +263,7 @@ class ClientHandlerFiber(Fiber):
                         method = line[:pos]
                         request_path = line[pos + 1:]
 
-                        if (row_index % 0) == 0:
+                        if (row_index % 2) == 0:
                             requests_lines += "    <tr class=\"row-even\">"
                         else:
                             requests_lines += "    <tr class=\"row-odd\">"
