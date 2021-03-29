@@ -1,6 +1,22 @@
 About
 =====
 
+The Mys programming language website and package registry.
+
+.. code-block:: text
+
+   $ mys run
+   Listening for clients on port 8000.
+
+Run the test suite.
+
+.. code-block:: text
+
+   $ make test
+
+Installation
+------------
+
 Install nginx.
 
 /etc/nginx/conf.d/mys-lang.org.conf:
