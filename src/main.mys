@@ -148,9 +148,12 @@ class ClientHandlerFiber(Fiber):
             return
 
         method, path, params_string = request
-        self.statistics.handle_request(method, path)
         params = parse_params(params_string)
         headers = self.read_headers()
+
+        self.statistics.handle_request(method,
+                                       path,
+                                       headers.get("X-Forwarded-For", None))
 
         print(method, path, params_string)
 
@@ -343,6 +346,9 @@ class ClientHandlerFiber(Fiber):
                                         str(self.statistics.start_date_time))
                     data = data.replace("{website-total-number-of-requests}",
                                         str(total_number_of_requests))
+                    data = data.replace(
+                        "{website-number-of-unique-clients}",
+                        str(len(self.statistics.clients_ip_addresses)))
                     data = data.replace("<p>{website-requests}</p>",
                                         requests.to_string())
                     self.client.write(data.to_utf8())
@@ -670,18 +676,26 @@ class ClientHandlerFiber(Fiber):
 class Statistics:
     start_date_time: LocalDateTime
     requests: {string: i64}
+    clients_ip_addresses: {string}
 
     def __init__(self):
         self.start_date_time = LocalDateTime()
         self.requests = {}
+        self.clients_ip_addresses = {}
 
-    def handle_request(self, method: string, path: string):
+    def handle_request(self,
+                       method: string,
+                       path: string,
+                       client_ip_address: string):
         key = f"{method} {path}"
 
         if key in self.requests:
             self.requests[key] += 1
-        else:
+        elif len(self.requests) < 1000:
             self.requests[key] = 1
+
+        if len(self.clients_ip_addresses) < 1000:
+            self.clients_ip_addresses.add(client_ip_address)
 
 def main(argv: [string]):
     parser = Parser("website")
