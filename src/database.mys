@@ -1,6 +1,7 @@
 from sqlite import Database as SqliteDatabase
 from sqlite import Statement
 from os import mkdir
+from fiber import Lock
 
 class Package:
     package_id: i64
@@ -43,9 +44,11 @@ class Database:
     _get_package_releases: Statement
     _add_package_release: Statement
     root_directory: string
+    _lock: Lock
 
     def __init__(self, root_directory: string):
         self.root_directory = root_directory
+        self._lock = Lock()
         mkdir(root_directory, exists_ok=True)
 
         self._database = SqliteDatabase(self.make_path("website.sqlite"))
@@ -115,6 +118,18 @@ class Database:
             "VALUES(?, ?, ?)")
 
         mkdir(self.make_path("package"), exists_ok=True)
+
+    def begin_transaction(self):
+        self._lock.acquire()
+        self._database.execute("BEGIN TRANSACTION")
+
+    def commit_transaction(self):
+        self._database.execute("COMMIT")
+        self._lock.release()
+
+    def rollback_transaction(self):
+        self._database.execute("ROLLBACK")
+        self._lock.release()
 
     def make_path(self, path: string) -> string:
         """Prepend the database root directory path to given path. Given path

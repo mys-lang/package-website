@@ -591,25 +591,31 @@ class ClientHandlerFiber(Fiber):
             self.write_response(Status.BadRequest)
             return
 
-        package = self.database.get_package(package_name)
+        self.database.begin_transaction()
+        response_data = ""
 
-        if package is None:
-            self.database.create_package(package_name, create_token())
+        try:
             package = self.database.get_package(package_name)
-            response_data = f"{{\"token\": \"{package.token}\"}}"
-        else:
-            if not self.validate_token(params, package.token):
+
+            if package is None:
+                self.database.create_package(package_name, create_token())
+                package = self.database.get_package(package_name)
+                response_data = f"{{\"token\": \"{package.token}\"}}"
+            elif not self.validate_token(params, package.token):
+                self.database.rollback_transaction()
                 return
 
-            response_data = ""
+            self.database.add_package_release(package, version, description)
+            release = self.database.get_package_release(package, version)
 
-        self.database.add_package_release(package, version, description)
-        release = self.database.get_package_release(package, version)
+            if package.latest_release is None:
+                self.database.modify_package(package, release)
+            elif is_later_version(version, package.latest_release.version):
+                self.database.modify_package(package, release)
 
-        if package.latest_release is None:
-            self.database.modify_package(package, release)
-        elif is_later_version(version, package.latest_release.version):
-            self.database.modify_package(package, release)
+            self.database.commit_transaction()
+        except:
+            self.database.rollback_transaction()
 
         run(f"mv {fiber_path} {database_path}")
         self.generate_package_documentation(package_name, version)
@@ -644,25 +650,31 @@ class ClientHandlerFiber(Fiber):
             extract=True,
             output_directory=self.database.root_directory)
 
-        mys = self.database.get_mys()
+        self.database.begin_transaction()
+        response_data = ""
 
-        if mys is None:
-            self.database.create_mys(create_token())
+        try:
             mys = self.database.get_mys()
-            response_data = f"{{\"token\": \"{mys.token}\"}}"
-        else:
-            if not self.validate_token(params, mys.token):
+
+            if mys is None:
+                self.database.create_mys(create_token())
+                mys = self.database.get_mys()
+                response_data = f"{{\"token\": \"{mys.token}\"}}"
+            elif not self.validate_token(params, mys.token):
+                self.database.rollback_transaction()
                 return
 
-            response_data = ""
+            self.database.add_mys_release(version)
+            release = self.database.get_mys_release(version)
 
-        self.database.add_mys_release(version)
-        release = self.database.get_mys_release(version)
+            if mys.latest_release is None:
+                self.database.modify_mys(release)
+            elif is_later_version(version, mys.latest_release.version):
+                self.database.modify_mys(release)
 
-        if mys.latest_release is None:
-            self.database.modify_mys(release)
-        elif is_later_version(version, mys.latest_release.version):
-            self.database.modify_mys(release)
+            self.database.commit_transaction()
+        except:
+            self.database.rollback_transaction()
 
         self.write_response(Status.Ok, data=response_data)
 
