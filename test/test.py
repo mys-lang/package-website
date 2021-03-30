@@ -93,7 +93,7 @@ class MysTest(TestCase):
         # Index exists.
         response = self.http_get("/")
         self.assert_equal(response.status_code, 200)
-        self.assert_in('Welcome to Mys’ documentation!', response.text)
+        self.assert_in('The Mys programming language', response.text)
 
         # Upload the same release a few more times.
         for _ in range(3):
@@ -106,7 +106,7 @@ class MysTest(TestCase):
         # Index still exists.
         response = self.http_get("/")
         self.assert_equal(response.status_code, 200)
-        self.assert_in('Welcome to Mys’ documentation!', response.text)
+        self.assert_in('The Mys programming language', response.text)
 
 
 class PackageTest(TestCase):
@@ -118,9 +118,7 @@ class PackageTest(TestCase):
         shutil.rmtree("foo", ignore_errors=True)
         subprocess.run(["mys", "new", "foo"], check=True)
 
-        package_list_item = (
-            '<li><p><a href="/package/foo/latest/index.html">foo</a> - '
-            'Add a short package description here.</p></li>')
+        package_list_item = '<a href="/package/foo/latest/index.html">foo</a>'
 
         # Package page does not exist.
         response = self.http_get("/package/foo/0.1.0/index.html")
@@ -255,7 +253,7 @@ class StatisticsTest(TestCase):
         self.assert_equal(response.status_code, 200)
         self.assert_in('Statistics', response.text)
         self.assert_in('Start date and time', response.text)
-        self.assert_in('Requests', response.text)
+        self.assert_in('Traffic', response.text)
         self.assert_in('GET', response.text)
         self.assert_in('POST', response.text)
 

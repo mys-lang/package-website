@@ -206,19 +206,49 @@ class ClientHandlerFiber(Fiber):
 
                 if exists(path):
                     self.write_static_response_ok(path)
-                    packages = ""
+                    row_index = 0
+                    packages = StringBuilder()
+                    packages += (
+                        "<table class=\"docutils align-default\">\n"
+                        "  <colgroup>\n"
+                        "    <col/>\n"
+                        "    <col/>\n"
+                        "    <col/>\n"
+                        "  </colgroup>\n"
+                        "  <thead>\n"
+                        "    <tr class=\"row-odd\">\n"
+                        "      <th class=\"head\">Name</th>\n"
+                        "      <th class=\"head\">Description</th>\n"
+                        "      <th class=\"head\">Downloads</th>\n"
+                        "    </tr>\n"
+                        "  </thead>\n"
+                        "  <tbody\n>\n"
+                    )
 
                     for package_name in self.database.get_packages():
                         package = self.database.get_package(package_name)
                         database_doc_path = (
                             f"/package/{package_name}/latest/index.html")
+
+                        if (row_index % 2) == 0:
+                            packages += "    <tr class=\"row-even\">"
+                        else:
+                            packages += "    <tr class=\"row-odd\">"
+
                         packages += (
-                            f"<li><p><a href=\"{database_doc_path}\">"
-                            f"{package_name}</a> - "
-                            f"{package.latest_release.description}</p></li>\n")
+                            f"      <td><a href=\"{database_doc_path}\">"
+                            f"{package_name}</a></td>")
+                        packages += (
+                            f"      <td>{package.latest_release.description}</td>")
+                        packages += f"      <td>{package.number_of_downloads}</td>"
+                        packages += "    </tr>"
+                        row_index += 1
+
+                    packages += ("  </tbody>\n"
+                                 "</table>\n")
 
                     data = TextFile(path).read()
-                    data = data.replace("<li><p>{website-package}</p></li>", packages)
+                    data = data.replace("<p>{website-packages}</p>", packages.to_string())
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)
@@ -269,9 +299,9 @@ class ClientHandlerFiber(Fiber):
                         "  </colgroup>\n"
                         "  <thead>\n"
                         "    <tr class=\"row-odd\">\n"
-                        "      <th class=\"head\" onclick=\"sortTable(0)\"><p>Path</p></th>\n"
-                        "      <th class=\"head\" onclick=\"sortTable(1)\"><p>Method</p></th>\n"
-                        "      <th class=\"head\" onclick=\"sortTable(2)\"><p>Count</p></th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(0)\">Path</th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(1)\">Method</th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(2)\">Count</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
                         "  <tbody\n>\n"
@@ -344,10 +374,10 @@ class ClientHandlerFiber(Fiber):
                     data = TextFile(path).read()
                     data = data.replace("{website-start-date-time}",
                                         str(self.statistics.start_date_time))
-                    data = data.replace("{website-total-number-of-requests}",
+                    data = data.replace("{website-number-of-views}",
                                         str(total_number_of_requests))
                     data = data.replace(
-                        "{website-number-of-unique-clients}",
+                        "{website-number-of-unique-visitors}",
                         str(len(self.statistics.clients_ip_addresses)))
                     data = data.replace("<p>{website-requests}</p>",
                                         requests.to_string())
@@ -462,7 +492,8 @@ class ClientHandlerFiber(Fiber):
 
         match method:
             case "GET":
-                self.handle_package_tar_gz_get(database_path)
+                mo = path.match(re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$")
+                self.handle_package_tar_gz_get(mo.group(1), database_path)
             case "POST":
                 self.handle_package_tar_gz_post(path, params, headers, database_path)
             case _:
@@ -477,17 +508,19 @@ class ClientHandlerFiber(Fiber):
                 if package is not None:
                     version = package.latest_release.version
                     path = f"package/{package_name}-{version}.tar.gz"
-                    self.handle_package_tar_gz_get(self.database.make_path(path))
+                    self.handle_package_tar_gz_get(package_name,
+                                                   self.database.make_path(path))
                 else:
                     self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_tar_gz_get(self, database_path: string):
+    def handle_package_tar_gz_get(self, package_name: string, database_path: string):
         if exists(database_path):
             data = BinaryFile(database_path).read()
             self.write_response(Status.Ok)
             self.client.write(data)
+            self.database.increment_package_download_count(package_name)
         else:
             self.write_response(Status.NotFound)
 
