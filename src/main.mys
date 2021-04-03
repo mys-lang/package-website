@@ -219,6 +219,7 @@ class ClientHandlerFiber(Fiber):
                         "    <tr class=\"row-odd\">\n"
                         "      <th class=\"head\">Name</th>\n"
                         "      <th class=\"head\">Description</th>\n"
+                        "      <th class=\"head\">Version</th>\n"
                         "      <th class=\"head\">Downloads</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
@@ -240,6 +241,7 @@ class ClientHandlerFiber(Fiber):
                             f"{package_name}</a></td>")
                         packages += (
                             f"      <td>{package.latest_release.description}</td>")
+                        packages += f"      <td>{package.latest_release.version}</td>"
                         packages += f"      <td>{package.number_of_downloads}</td>"
                         packages += "    </tr>"
                         row_index += 1
