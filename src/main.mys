@@ -225,9 +225,13 @@ class ClientHandlerFiber(Fiber):
                         "  </thead>\n"
                         "  <tbody\n>\n"
                     )
+                    number_of_packages = 0
+                    number_of_downloads = 0
 
                     for package_name in self.database.get_packages():
                         package = self.database.get_package(package_name)
+                        number_of_packages += 1
+                        number_of_downloads += package.number_of_downloads
                         database_doc_path = (
                             f"/package/{package_name}/latest/index.html")
 
@@ -251,6 +255,10 @@ class ClientHandlerFiber(Fiber):
 
                     data = TextFile(path).read()
                     data = data.replace("<p>{website-packages}</p>", packages.to_string())
+                    data = data.replace("{website-number-of-packages}",
+                                        str(number_of_packages))
+                    data = data.replace("{website-number-of-downloads}",
+                                        str(number_of_downloads))
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)
