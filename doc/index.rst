@@ -55,39 +55,24 @@ Run once in a while to renew the certificate.
 
    sudo certbot renew
 
-Disk quota
-----------
+ZFS storage with compression and deduplication
+----------------------------------------------
 
-https://www.digitalocean.com/community/tutorials/how-to-set-filesystem-quotas-on-ubuntu-18-04
-
-.. code-block:: text
-
-   sudo apt install quota
-
-Add usrquota to /etc/fstab.
+There are lots of identical files in releases. Dedup saves disk
+space. So does compression with LZ4. Not sure about the combination of
+the two.
 
 .. code-block:: text
 
-   sudo nano /etc/fstab
-
-Remount the filesystem and check that usrquota is present.
-
-.. code-block:: text
-
-   sudo mount -o remount /
-   cat /proc/mounts | grep ' / '
-
-Set soft and hard limits on the mys user:
-
-.. code-block:: text
-
-   $ sudo edquota -u mys
-
-Report quotas:
-
-.. code-block:: text
-
-   $ sudo repquota -u -s -t /
+   $ sudo zpool create mys-website
+   $ sudo zpool set autoexpand=on mys-website
+   $ sudo zfs create mys-website/database
+   $ sudo zfs set compression=lz4 mys-website/database
+   $ sudo zfs set dedup=on mys-website/database
+   $ sudo zfs set mountpoint=/home/mys/database mys-website/database
+   $ zpool list
+   NAME          SIZE  ALLOC   FREE  CKPOINT  EXPANDSZ   FRAG    CAP  DEDUP    HEALTH  ALTROOT
+   mys-website   960M  15.1M   945M        -         -     0%     1%  79.76x    ONLINE  -
 
 Systemd service
 ---------------
