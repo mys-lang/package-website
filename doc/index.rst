@@ -61,7 +61,8 @@ the two.
 
 .. code-block:: text
 
-   $ sudo zpool create mys-website
+   $ sudo dd if=/dev/zero of=/home/mys/database.img bs=4096 count=262144
+   $ sudo zpool create mys-website /home/mys/database.img
    $ sudo zpool set autoexpand=on mys-website
    $ sudo zfs create mys-website/database
    $ sudo zfs set compression=lz4 mys-website/database
