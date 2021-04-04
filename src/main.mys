@@ -24,6 +24,19 @@ from .version import is_later_version
 from time import LocalDateTime
 from string import StringBuilder
 
+RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
+RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
+RE_MYS_VERSION_STANDARD_LIBRARY: regex = (
+    re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
+RE_MYS_VERSION_STATISTICS: regex = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
+RE_MYS_VERSION: regex = re"^/\d+\.\d+\.\d+[\w-]*/"
+RE_PACKAGE_TAR_GZ: regex = re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$"
+RE_PACKAGE_LATEST_TAR_GZ: regex = re"^/package/[\w-]+-latest.tar.gz$"
+RE_PACKAGE_OPERATIONS: regex = re"^/package/[\w-]+$"
+RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
+RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
+RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
+
 class ReadError(Error):
     pass
 
@@ -114,7 +127,7 @@ class ClientHandlerFiber(Fiber):
 
     def read_request_line(self) -> (string, string, string):
         line = self.read_line()
-        mo = line.match(re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$")
+        mo = line.match(RE_REQUEST)
 
         if mo is None:
             print("Bad request line:", line)
@@ -132,7 +145,7 @@ class ClientHandlerFiber(Fiber):
             if len(line) == 0:
                 break
 
-            mo = line.match(re"^([^:]+): (.*)$")
+            mo = line.match(RE_HEADER_LINE)
 
             if mo is not None:
                 headers[mo.group(1)] = mo.group(2)
@@ -155,36 +168,63 @@ class ClientHandlerFiber(Fiber):
                                        path,
                                        headers.get("X-Forwarded-For", None))
 
-        print(method, path, params_string)
+        # print(method, path, params_string)
 
         if path == "/":
             self.handle_index(method)
-        elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html") is not None:
+            return
+
+        if path.match(RE_MYS_VERSION_STANDARD_LIBRARY) is not None:
             self.handle_mys_version_standard_library(method, path)
-        elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/statistics.html") is not None:
+            return
+
+        if path.match(RE_MYS_VERSION_STATISTICS) is not None:
             self.handle_mys_version_statistics(method, path)
-        elif path.match(re"^/\d+\.\d+\.\d+[\w-]*/") is not None:
+            return
+
+        if path.match(RE_MYS_VERSION) is not None:
             self.handle_mys_version(method, path)
-        elif path.match(re"^/package/[\w-]+-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
-            self.handle_package_tar_gz(method, path, params, headers)
-        elif path.match(re"^/package/[\w-]+-latest.tar.gz$") is not None:
+            return
+
+        mo = path.match(RE_PACKAGE_TAR_GZ)
+
+        if mo is not None:
+            self.handle_package_tar_gz(method, path, params, headers, mo.group(1))
+            return
+
+        if path.match(RE_PACKAGE_LATEST_TAR_GZ) is not None:
             self.handle_package_latest_tar_gz(method, path)
-        elif path.match(re"^/package/[\w-]+$") is not None:
+            return
+
+        if path.match(RE_PACKAGE_OPERATIONS) is not None:
             self.handle_package_operations(method, path, params)
-        elif path.match(re"^/package/[\w-]+/latest/") is not None:
+            return
+
+        if path.match(RE_PACKAGE_LATEST) is not None:
             self.handle_package_latest(method, path)
-        elif path.starts_with("/package/"):
+            return
+
+        if path.starts_with("/package/"):
             self.handle_package(method, path)
-        elif path.match(re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$") is not None:
+            return
+
+        if path.match(RE_MYS_TAR_GZ) is not None:
             self.handle_mys_tar_gz(method, path, params, headers)
-        elif path == "/favicon.ico":
+            return
+
+        if path == "/favicon.ico":
             self.handle_static_file(method, path)
-        elif path == "/standard-library.html":
+            return
+
+        if path == "/standard-library.html":
             self.handle_mys_standard_library(method, path)
-        elif path == "/statistics.html":
+            return
+
+        if path == "/statistics.html":
             self.handle_mys_statistics(method, path)
-        else:
-            self.handle_mys(method, path)
+            return
+
+        self.handle_mys(method, path)
 
     def handle_index(self, method: string):
         match method:
@@ -497,13 +537,13 @@ class ClientHandlerFiber(Fiber):
                               method: string,
                               path: string,
                               params: {string: string},
-                              headers: {string: string}):
+                              headers: {string: string},
+                              package_name: string):
         database_path = self.database.make_path(path[1:])
 
         match method:
             case "GET":
-                mo = path.match(re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$")
-                self.handle_package_tar_gz_get(mo.group(1), database_path)
+                self.handle_package_tar_gz_get(package_name, database_path)
             case "POST":
                 self.handle_package_tar_gz_post(path, params, headers, database_path)
             case _:
@@ -597,7 +637,7 @@ class ClientHandlerFiber(Fiber):
         except KeyError:
             description = "No description found."
 
-        if package_name.match(re"^[\w\-]+$") is None:
+        if package_name.match(RE_PACKAGE_NAME) is None:
             self.write_response(Status.BadRequest)
             return
 
@@ -708,7 +748,7 @@ class ClientHandlerFiber(Fiber):
                        headers: {string: string} = {},
                        data: string = None):
         status_string = _STATUS_STRINGS[i64(status)]
-        print(status, status_string)
+        # print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())
 
         for name, value in headers:
