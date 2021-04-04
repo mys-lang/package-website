@@ -263,7 +263,7 @@ class ClientHandlerFiber(Fiber):
                         "      <th class=\"head\">Downloads</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
-                        "  <tbody\n>\n"
+                        "  <tbody>\n"
                     )
                     number_of_packages = 0
                     number_of_downloads = 0
@@ -358,7 +358,7 @@ class ClientHandlerFiber(Fiber):
                         "Count</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
-                        "  <tbody\n>\n"
+                        "  <tbody>\n"
                     )
 
                     for line, count in self.statistics.requests:
