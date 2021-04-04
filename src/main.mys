@@ -674,6 +674,7 @@ class ClientHandlerFiber(Fiber):
             self.database.rollback_transaction()
             raise
 
+        rm(database_path, force=True)
         mv(fiber_path, database_path)
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data)
