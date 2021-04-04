@@ -1,7 +1,10 @@
+|test|_
+
 About
 =====
 
-The Mys programming language website and package registry.
+The Mys programming language website and package registry implemented
+in the `Mys programming language`_.
 
 Project: https://github.com/mys-lang/package-website
 
@@ -101,3 +104,8 @@ Enable is for start at boot.
 
    $ sudo systemctl start mys-lang.org
    $ sudo systemctl enable mys-lang.org
+
+.. |test| image:: https://github.com/mys-lang/package-website/actions/workflows/pythonpackage.yml/badge.svg
+.. _test: https://github.com/mys-lang/package-website/actions/workflows/pythonpackage.yml
+
+.. _Mys programming language: https://mys-lang.org
