@@ -341,7 +341,8 @@ class ClientHandlerFiber(Fiber):
                     row_index = 0
                     requests = StringBuilder()
                     requests += (
-                        "<table class=\"docutils align-default\" id=\"requestsTable\">\n"
+                        "<table class=\"docutils align-default\" "
+                        "id=\"requestsTable\">\n"
                         "  <colgroup>\n"
                         "    <col/>\n"
                         "    <col/>\n"
@@ -349,9 +350,12 @@ class ClientHandlerFiber(Fiber):
                         "  </colgroup>\n"
                         "  <thead>\n"
                         "    <tr class=\"row-odd\">\n"
-                        "      <th class=\"head\" onclick=\"sortTable(0)\">Path</th>\n"
-                        "      <th class=\"head\" onclick=\"sortTable(1)\">Method</th>\n"
-                        "      <th class=\"head\" onclick=\"sortTable(2)\">Count</th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(0)\">"
+                        "Path</th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(1)\">"
+                        "Method</th>\n"
+                        "      <th class=\"head\" onclick=\"sortTable(2)\">"
+                        "Count</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
                         "  <tbody\n>\n"
@@ -364,14 +368,14 @@ class ClientHandlerFiber(Fiber):
                         request_path = line[pos + 1:]
 
                         if (row_index % 2) == 0:
-                            requests += "    <tr class=\"row-even\">"
+                            requests += "    <tr class=\"row-even\">\n"
                         else:
-                            requests += "    <tr class=\"row-odd\">"
+                            requests += "    <tr class=\"row-odd\">\n"
 
-                        requests += f"      <td>{request_path}</td>"
-                        requests += f"      <td>{method}</td>"
-                        requests += f"      <td>{count}</td>"
-                        requests += "    </tr>"
+                        requests += f"      <td>{request_path}</td>\n"
+                        requests += f"      <td>{method}</td>\n"
+                        requests += f"      <td>{count}</td>\n"
+                        requests += "    </tr>\n"
                         row_index += 1
 
                     requests += (
@@ -390,7 +394,8 @@ class ClientHandlerFiber(Fiber):
                         "    for (i = 1; i < (rows.length - 1); i++) {\n"
                         "      shouldSwitch = false;\n"
                         "      x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;\n"
-                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n].innerHTML;\n"
+                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n]"
+                        ".innerHTML;\n"
                         "      if (dir == \"asc\") {\n"
                         "        if (((n < 2) && (x > y))\n"
                         "            || ((n == 2) && (parseInt(x) > parseInt(y)))) {\n"
