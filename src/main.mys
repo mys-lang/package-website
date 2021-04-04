@@ -276,18 +276,18 @@ class ClientHandlerFiber(Fiber):
                             f"/package/{package_name}/latest/index.html")
 
                         if (row_index % 2) == 0:
-                            packages += "    <tr class=\"row-even\">"
+                            packages += "    <tr class=\"row-even\">\n"
                         else:
-                            packages += "    <tr class=\"row-odd\">"
+                            packages += "    <tr class=\"row-odd\">\n"
 
                         packages += (
                             f"      <td><a href=\"{database_doc_path}\">"
-                            f"{package_name}</a></td>")
+                            f"{package_name}</a></td>\n")
                         packages += (
-                            f"      <td>{package.latest_release.description}</td>")
-                        packages += f"      <td>{package.latest_release.version}</td>"
-                        packages += f"      <td>{package.number_of_downloads}</td>"
-                        packages += "    </tr>"
+                            f"      <td>{package.latest_release.description}</td>\n")
+                        packages += f"      <td>{package.latest_release.version}</td>\n"
+                        packages += f"      <td>{package.number_of_downloads}</td>\n"
+                        packages += "    </tr>\n"
                         row_index += 1
 
                     packages += ("  </tbody>\n"
