@@ -24,8 +24,8 @@ class Location:
     longitude: f64
 
     def __init__(self, latitude: f64, longitude: f64):
-        self.latitude = longitude
-        self.longitude = latitude
+        self.latitude = latitude
+        self.longitude = longitude
 
 class _ClientIpLookupFiber(Fiber):
     token: string
