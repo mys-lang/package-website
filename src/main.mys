@@ -487,8 +487,11 @@ class ClientHandlerFiber(Fiber):
                     locations = StringBuilder()
 
                     for _, location in self.statistics.locations:
+                        # Just approximate x and y.
+                        x = (112.0 / 360.0) * (180.0 + location.longitude)
+                        y = 4.0 + (60.0 / 180.0) * (90.0 - location.latitude)
                         locations += (
-                            f"""  <use href="#a" x="{location.x}" y="{location.y}" """
+                            f"""  <use href="#a" x="{x}" y="{y}" """
                             """style="opacity: 0.6"/>\n""")
 
                     self.write_response(Status.Ok,
