@@ -44,7 +44,8 @@ FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     "css": "text/css",
     "js": "application/javascript",
     "svg": "image/svg+xml",
-    "png": "image/png"
+    "png": "image/png",
+    "woff2": "font/woff2"
 }
 
 class ReadError(Error):
