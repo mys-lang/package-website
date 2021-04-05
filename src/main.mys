@@ -800,7 +800,7 @@ class ClientIpLookupFiber(Fiber):
         while True:
             client_ip_address = self.queue.get()
 
-            if self.token == "":
+            if self.token is None:
                 continue
 
             try:
@@ -858,7 +858,7 @@ def main(argv: [string]):
                       help="Database directory (default: \".\").")
     parser.add_option("--ipinfo-token",
                       short="-i",
-                      default="",
+                      takes_value=True,
                       help="ipinfo.io token.")
     args = parser.parse(argv)
 
