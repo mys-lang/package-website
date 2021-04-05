@@ -17,17 +17,13 @@ from .database import Mys
 from .database import MysRelease
 from toml import decode as toml_decode
 from toml import Value as TomlValue
-from json import decode as json_decode
-from json import Value as JsonValue
 from fiber import Fiber
 from fiber import Event
-from fiber import Queue
 from . import create_token
 from . import parse_params
 from .version import is_later_version
-from time import LocalDateTime
+from .statistics import Statistics
 from string import StringBuilder
-from http import get as http_get
 
 RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
 RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
@@ -780,72 +776,6 @@ class ClientHandlerFiber(Fiber):
                                     "Cache-Control": "public, max-age=7200"
                                 })
 
-def get_item(location: {string: JsonValue}, key: string) -> string:
-    value = location.get(key, None)
-
-    if value is not None:
-        return value.get_string()
-    else:
-        return ""
-
-class ClientIpLookupFiber(Fiber):
-    token: string
-    queue: Queue[string]
-
-    def __init__(self, token: string):
-        self.token = token
-        self.queue = Queue[string]()
-
-    def run(self):
-        while True:
-            client_ip_address = self.queue.get()
-
-            if self.token is None:
-                continue
-
-            try:
-                content = string(http_get("ipinfo.io",
-                                          80,
-                                          f"/{client_ip_address}?token={self.token}",
-                                          secure=False)[1])
-                location = json_decode(content).get_object()
-                city = get_item(location, "city")
-                country = get_item(location, "country")
-                org = get_item(location, "org")
-                print(f"{org}; {city}; {country}")
-            except Error as e:
-                print(e)
-
-class Statistics:
-    start_date_time: LocalDateTime
-    requests: {string: i64}
-    clients_ip_addresses: {string}
-    client_ip_lookup_fiber: ClientIpLookupFiber
-
-    def __init__(self, ipinfo_token: string):
-        self.start_date_time = LocalDateTime()
-        self.requests = {}
-        self.clients_ip_addresses = {}
-        self.client_ip_lookup_fiber = ClientIpLookupFiber(ipinfo_token)
-        self.client_ip_lookup_fiber.start()
-
-    def handle_request(self,
-                       method: string,
-                       path: string,
-                       client_ip_address: string):
-        key = f"{method} {path}"
-
-        if key in self.requests:
-            self.requests[key] += 1
-        elif len(self.requests) < 1000:
-            self.requests[key] = 1
-
-        if client_ip_address is not None:
-            if len(self.clients_ip_addresses) < 1000:
-                self.clients_ip_addresses.add(client_ip_address)
-
-            self.client_ip_lookup_fiber.queue.put(client_ip_address)
-
 def main(argv: [string]):
     parser = Parser("website")
     parser.add_option("--port",
@@ -863,7 +793,6 @@ def main(argv: [string]):
     args = parser.parse(argv)
 
     database = Database(args.value_of("--database-directory"))
-
     statistics = Statistics(args.value_of("--ipinfo-token"))
 
     client_handlers: [ClientHandlerFiber] = []
