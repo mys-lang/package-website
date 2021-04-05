@@ -8,16 +8,30 @@ in the `Mys programming language`_.
 
 Project: https://github.com/mys-lang/package-website
 
+Testing
+=======
+
 Run the test suite.
 
 .. code-block:: text
 
    $ make test
 
-Installation
-------------
+Run locally
+===========
 
-Install nginx.
+Start an webserver locally. Run ``mys run -- --help`` for options.
+
+.. code-block:: text
+
+   $ mys run
+   Number of packages: 0
+   Listening for clients on port 8000.
+
+Installation
+============
+
+Nginx terminates SSL/TLS.
 
 /etc/nginx/conf.d/mys-lang.org.conf:
 
@@ -42,18 +56,18 @@ Install certbot.
 
 https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/
 
-Create a certificate and update nginx configuration. Redirect http to
-https.
+Create a certificate and automatically updates nginx
+configuration. Enable redirect of http to https.
 
 .. code-block:: text
 
-   sudo certbot --nginx -d mys-lang.org
+   $ sudo certbot --nginx -d mys-lang.org
 
 Run once in a while to renew the certificate.
 
 .. code-block:: text
 
-   sudo certbot renew
+   $ sudo certbot renew
 
 ZFS storage with compression and deduplication
 ----------------------------------------------
@@ -92,18 +106,23 @@ Systemd service
    Restart=always
    RestartSec=1
    User=mys
-   ExecStart=/home/mys/package-website/build/speed/app -d /home/mys/database
+   ExecStart=/home/mys/package-website/build/speed/app -d /home/mys/database [-i <ipinfo-token>]
    WorkingDirectory=/home/mys
 
    [Install]
    WantedBy=multi-user.target
 
-Enable is for start at boot.
+Enable it for automatic start at boot.
+
+.. code-block::
+
+   $ sudo systemctl enable mys-lang.org
+
+Start it.
 
 .. code-block::
 
    $ sudo systemctl start mys-lang.org
-   $ sudo systemctl enable mys-lang.org
 
 .. |test| image:: https://github.com/mys-lang/package-website/actions/workflows/pythonpackage.yml/badge.svg
 .. _test: https://github.com/mys-lang/package-website/actions/workflows/pythonpackage.yml
