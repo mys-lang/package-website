@@ -480,8 +480,7 @@ class ClientHandlerFiber(Fiber):
                     for _, location in self.statistics.locations:
                         locations += (
                             f"""  <use href="#a" x="{location.x}" y="{location.y}" """
-                            """style="opacity: 0; animation: fade-in 1.2s """
-                            """forwards"/>\n""")
+                            """style="opacity: 0.6"/>\n""")
 
                     self.write_response(Status.Ok,
                                         headers={"Content-Type": "image/svg+xml"})
