@@ -39,6 +39,13 @@ RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
 RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
 RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
 
+FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
+    "html": "text/html",
+    "css": "text/css",
+    "js": "application/javascript",
+    "svg": "image/svg+xml"
+}
+
 class ReadError(Error):
     pass
 
@@ -243,7 +250,7 @@ class ClientHandlerFiber(Fiber):
                 if mys is not None:
                     self.handle_mys(method, "/index.html")
                 else:
-                    self.write_response(Status.Ok)
+                    self.write_response_type(Status.Ok, "text/html")
                     self.client.write(b"<html>No mys documentation found!</html>")
             case _:
                 self.write_response(Status.MethodNotAllowed)
@@ -810,13 +817,20 @@ class ClientHandlerFiber(Fiber):
             self.client.write(data_bytes)
 
     def write_static_response_ok(self, path: string):
-        if path.ends_with(".html"):
-            self.write_response(Status.Ok)
+        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.split('.')[-1], "text/plain")
+
+        if content_type == "html":
+            self.write_response_type(Status.Ok, content_type)
         else:
             self.write_response(Status.Ok,
                                 headers={
-                                    "Cache-Control": "public, max-age=7200"
+                                    "Cache-Control": "public, max-age=7200",
+                                    "Content-Type": content_type
                                 })
+
+    def write_response_type(self, status: Status, content_type: string):
+        self.write_response(status,
+                            headers={"Content-Type": content_type})
 
 def main(argv: [string]):
     parser = Parser("website")
