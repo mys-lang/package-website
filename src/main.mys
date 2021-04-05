@@ -30,6 +30,7 @@ RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
 RE_MYS_VERSION_STANDARD_LIBRARY: regex = (
     re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
 RE_MYS_VERSION_STATISTICS: regex = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
+RE_MYS_VERSION_WORLD_SVG: regex = re"^/\d+\.\d+\.\d+[\w-]*/_images/world.svg"
 RE_MYS_VERSION: regex = re"^/\d+\.\d+\.\d+[\w-]*/"
 RE_PACKAGE_TAR_GZ: regex = re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$"
 RE_PACKAGE_LATEST_TAR_GZ: regex = re"^/package/[\w-]+-latest.tar.gz$"
@@ -182,6 +183,10 @@ class ClientHandlerFiber(Fiber):
             self.handle_mys_version_statistics(method, path)
             return
 
+        if path.match(RE_MYS_VERSION_WORLD_SVG) is not None:
+            self.handle_mys_version_world_svg(method, path)
+            return
+
         if path.match(RE_MYS_VERSION) is not None:
             self.handle_mys_version(method, path)
             return
@@ -222,6 +227,10 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/statistics.html":
             self.handle_mys_statistics(method, path)
+            return
+
+        if path == "/_images/world.svg":
+            self.handle_mys_world_svg(method, path)
             return
 
         self.handle_mys(method, path)
@@ -450,6 +459,40 @@ class ClientHandlerFiber(Fiber):
             self.handle_mys_version_statistics(method, path)
         else:
             self.write_response(Status.NotFound)
+
+    def handle_mys_world_svg(self, method: string, path: string):
+        mys = self.database.get_mys()
+
+        if mys is not None:
+            path = f"/{mys.latest_release.version}{path}"
+            self.handle_mys_version_world_svg(method, path)
+        else:
+            self.write_response(Status.NotFound)
+
+    def handle_mys_version_world_svg(self, method: string, path: string):
+        match method:
+            case "GET":
+                path = self.database.make_path(path[1:])
+
+                if exists(path):
+                    locations = StringBuilder()
+
+                    for _, location in self.statistics.locations:
+                        locations += (
+                            f"""  <use href="#a" x="{location.x}" y="{location.y}" """
+                            """style="opacity: 0; animation: fade-in 1.2s """
+                            """forwards"/>\n""")
+
+                    self.write_response(Status.Ok,
+                                        headers={"Content-Type": "image/svg+xml"})
+                    world = TextFile(path).read()
+                    world = world.replace("  <!-- {website-world} -->",
+                                          locations.to_string())
+                    self.client.write(world.to_utf8())
+                else:
+                    self.write_response(Status.NotFound)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
 
     def handle_mys(self, method: string, path: string):
         mys = self.database.get_mys()
