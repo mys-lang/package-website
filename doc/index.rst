@@ -41,7 +41,7 @@ Nginx terminates SSL/TLS.
         listen 80;
         server_name mys-lang.org;
         gzip on;
-        gzip_types image/svg+xml application/javascript text/css text/html font/woff2;
+        gzip_types image/svg+xml application/javascript text/css text/html;
 
         location ^~ /.well-known/acme-challenge/ {
             root /var/www/mys-lang.org;
