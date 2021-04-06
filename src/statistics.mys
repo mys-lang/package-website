@@ -13,12 +13,6 @@ def _get_item(location: {string: JsonValue}, key: string) -> string:
     else:
         return ""
 
-def _to_f64(value: string) -> f64:
-    if value[0] == '-':
-        return -1.0 * f64(value[1:])
-    else:
-        return f64(value)
-
 class Location:
     latitude: f64
     longitude: f64
@@ -56,8 +50,8 @@ class _ClientIpLookupFiber(Fiber):
                                           secure=False)[1])
                 location = json_decode(content).get_object()
                 parts = _get_item(location, "loc").split(',')
-                latitude = _to_f64(parts[0])
-                longitude = _to_f64(parts[1])
+                latitude = f64(parts[0])
+                longitude = f64(parts[1])
 
                 if len(self._locations_order) == 25:
                     self.locations.pop(self._locations_order.pop(0), None)
