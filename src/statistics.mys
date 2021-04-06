@@ -5,13 +5,7 @@ from json import decode as json_decode
 from json import Value as JsonValue
 from time import LocalDateTime
 
-def _get_item(location: {string: JsonValue}, key: string) -> string:
-    value = location.get(key, None)
-
-    if value is not None:
-        return value.get_string()
-    else:
-        return ""
+RE_LOCATION: regex = re"^([\d.]+),([\d.]+)$"
 
 class Location:
     latitude: f64
@@ -48,10 +42,14 @@ class _ClientIpLookupFiber(Fiber):
                                           80,
                                           f"/{client_ip_address}?token={self.token}",
                                           secure=False)[1])
-                location = json_decode(content).get_object()
-                parts = _get_item(location, "loc").split(',')
-                latitude = f64(parts[0])
-                longitude = f64(parts[1])
+
+                mo = json_decode(content).get("loc").get_string().match(RE_LOCATION)
+
+                if mo is None:
+                    continue
+
+                latitude = f64(mo.group(1))
+                longitude = f64(mo.group(2))
 
                 if len(self._locations_order) == 25:
                     self.locations.pop(self._locations_order.pop(0), None)
