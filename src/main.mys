@@ -825,7 +825,7 @@ class ClientHandlerFiber(Fiber):
         content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.split('.')[-1],
                                                        "text/plain")
 
-        if content_type == "html":
+        if content_type == "text/html":
             self.write_response_type(Status.Ok, content_type)
         else:
             self.write_response(Status.Ok,
