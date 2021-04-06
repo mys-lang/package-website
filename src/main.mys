@@ -159,7 +159,7 @@ class ClientHandlerFiber(Fiber):
             mo = line.match(RE_HEADER_LINE)
 
             if mo is not None:
-                headers[mo.group(1)] = mo.group(2)
+                headers[mo.group(1).lower()] = mo.group(2)
 
         return headers
 
@@ -176,7 +176,7 @@ class ClientHandlerFiber(Fiber):
 
         self.statistics.handle_request(method,
                                        path,
-                                       headers.get("X-Forwarded-For", None))
+                                       headers.get("x-forwarded-for", None))
 
         # print(method, path, params_string)
 
@@ -495,7 +495,7 @@ class ClientHandlerFiber(Fiber):
                             """style="opacity: 0.6"/>\n""")
 
                     self.write_response(Status.Ok,
-                                        headers={"Content-Type": "image/svg+xml"})
+                                        headers={"content-type": "image/svg+xml"})
                     world = TextFile(path).read()
                     world = world.replace("  <!-- {website-world} -->",
                                           locations.to_string())
@@ -636,14 +636,14 @@ class ClientHandlerFiber(Fiber):
     def save_post_data_to_file(self,
                                max_size: i64,
                                headers: {string: string}) -> string:
-        content_length = u32(headers["Content-Length"])
+        content_length = u32(headers["content-length"])
 
         if content_length > 50_000_000:
             self.write_response(Status.BadRequest)
 
             return None
 
-        expect = headers.get("Expect", "")
+        expect = headers.get("expect", "")
 
         if expect == "100-continue":
             self.write_response(Status.Continue)
@@ -818,24 +818,25 @@ class ClientHandlerFiber(Fiber):
             self.client.write("\r\n".to_utf8())
         else:
             data_bytes = data.to_utf8()
-            self.client.write(f"Content-Length: {len(data_bytes)}\r\n\r\n".to_utf8())
+            self.client.write(f"content-length: {len(data_bytes)}\r\n\r\n".to_utf8())
             self.client.write(data_bytes)
 
     def write_static_response_ok(self, path: string):
-        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.split('.')[-1], "text/plain")
+        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.split('.')[-1],
+                                                       "text/plain")
 
         if content_type == "html":
             self.write_response_type(Status.Ok, content_type)
         else:
             self.write_response(Status.Ok,
                                 headers={
-                                    "Cache-Control": "public, max-age=7200",
-                                    "Content-Type": content_type
+                                    "cache-control": "public, max-age=7200",
+                                    "content-type": content_type
                                 })
 
     def write_response_type(self, status: Status, content_type: string):
         self.write_response(status,
-                            headers={"Content-Type": content_type})
+                            headers={"content-type": content_type})
 
 def main(argv: [string]):
     parser = Parser("website")
