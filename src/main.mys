@@ -495,7 +495,7 @@ class ClientHandlerFiber(Fiber):
                             """style="opacity: 0.6"/>\n""")
 
                     self.write_response(Status.Ok,
-                                        headers={"content-type": "image/svg+xml"})
+                                        headers={"Content-Type": "image/svg+xml"})
                     world = TextFile(path).read()
                     world = world.replace("  <!-- {website-world} -->",
                                           locations.to_string())
@@ -830,13 +830,13 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.Ok,
                                 headers={
-                                    "cache-control": "public, max-age=7200",
-                                    "content-type": content_type
+                                    "Cache-Control": "public, max-age=7200",
+                                    "Content-Type": content_type
                                 })
 
     def write_response_type(self, status: Status, content_type: string):
         self.write_response(status,
-                            headers={"content-type": content_type})
+                            headers={"Content-Type": content_type})
 
 def main(argv: [string]):
     parser = Parser("website")
