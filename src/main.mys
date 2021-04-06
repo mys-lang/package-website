@@ -443,7 +443,7 @@ class ClientHandlerFiber(Fiber):
                         "</script>\n"
                     )
 
-                    self.write_static_response_ok(path)
+                    self.write_response_type(Status.Ok, "text/html")
                     data = TextFile(path).read()
                     data = data.replace("{website-start-date-time}",
                                         str(self.statistics.start_date_time))
