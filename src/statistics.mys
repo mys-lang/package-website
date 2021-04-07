@@ -4,6 +4,7 @@ from http import get as http_get
 from json import decode as json_decode
 from json import Value as JsonValue
 from time import LocalDateTime
+from .fifo import Fifo
 
 RE_LOCATION: regex = re"^([\d.-]+),([\d.-]+)$"
 
@@ -19,13 +20,13 @@ class _ClientIpLookupFiber(Fiber):
     token: string
     queue: Queue[string]
     locations: {string: Location}
-    _locations_order: [string]
+    _locations_order: Fifo[string]
 
     def __init__(self, token: string, locations: {string: Location}):
         self.token = token
         self.queue = Queue[string]()
         self.locations = locations
-        self._locations_order = []
+        self._locations_order = Fifo[string](100)
 
     def run(self):
         while True:
@@ -51,11 +52,11 @@ class _ClientIpLookupFiber(Fiber):
                 latitude = f64(mo.group(1))
                 longitude = f64(mo.group(2))
 
-                if len(self._locations_order) == 25:
-                    self.locations.pop(self._locations_order.pop(0), None)
+                if self._locations_order.is_full():
+                    self.locations.pop(self._locations_order.pop(), None)
 
                 self.locations[client_ip_address] = Location(latitude, longitude)
-                self._locations_order += client_ip_address
+                self._locations_order.push(client_ip_address)
             except Error as e:
                 print(e)
 
@@ -86,8 +87,10 @@ class Statistics:
         elif len(self.requests) < 1000:
             self.requests[key] = 1
 
-        if client_ip_address is not None:
-            if len(self.clients_ip_addresses) < 1000:
-                self.clients_ip_addresses.add(client_ip_address)
+        if client_ip_address is None:
+            return
 
-            self.client_ip_lookup_fiber.queue.put(client_ip_address)
+        if len(self.clients_ip_addresses) < 1000:
+            self.clients_ip_addresses.add(client_ip_address)
+
+        self.client_ip_lookup_fiber.queue.put(client_ip_address)
