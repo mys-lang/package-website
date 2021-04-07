@@ -176,7 +176,8 @@ class ClientHandlerFiber(Fiber):
 
         self.statistics.handle_request(method,
                                        path,
-                                       headers.get("x-forwarded-for", None))
+                                       headers.get("x-forwarded-for", None),
+                                       headers.get("referer", None))
 
         # print(method, path, params_string)
 
@@ -443,6 +444,37 @@ class ClientHandlerFiber(Fiber):
                         "</script>\n"
                     )
 
+                    row_index = 0
+                    referrers = StringBuilder()
+                    referrers += (
+                        "<table class=\"docutils align-default\">\n"
+                        "  <colgroup>\n"
+                        "    <col/>\n"
+                        "    <col/>\n"
+                        "  </colgroup>\n"
+                        "  <thead>\n"
+                        "    <tr class=\"row-odd\">\n"
+                        "      <th class=\"head\">URL</th>\n"
+                        "      <th class=\"head\">Count</th>\n"
+                        "    </tr>\n"
+                        "  </thead>\n"
+                        "  <tbody>\n"
+                    )
+
+                    for url, count in self.statistics.referrers:
+                        if (row_index % 2) == 0:
+                            referrers += "    <tr class=\"row-even\">\n"
+                        else:
+                            referrers += "    <tr class=\"row-odd\">\n"
+
+                        referrers += f"      <td>{url}</td>\n"
+                        referrers += f"      <td>{count}</td>\n"
+                        referrers += "    </tr>\n"
+                        row_index += 1
+
+                    referrers += ("  </tbody>\n"
+                                  "</table>\n")
+
                     self.write_response_type(Status.Ok, "text/html")
                     data = TextFile(path).read()
                     data = data.replace("{website-start-date-time}",
@@ -454,6 +486,8 @@ class ClientHandlerFiber(Fiber):
                         str(len(self.statistics.clients_ip_addresses)))
                     data = data.replace("<p>{website-requests}</p>",
                                         requests.to_string())
+                    data = data.replace("<p>{website-referrers}</p>",
+                                        referrers.to_string())
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)

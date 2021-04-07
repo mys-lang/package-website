@@ -66,12 +66,14 @@ class Statistics:
     locations: {string: Location}
     clients_ip_addresses: {string}
     client_ip_lookup_fiber: _ClientIpLookupFiber
+    referrers: {string: i64}
 
     def __init__(self, ipinfo_token: string):
         self.start_date_time = LocalDateTime()
         self.requests = {}
         self.locations = {}
         self.clients_ip_addresses = {}
+        self.referrers = {}
         self.client_ip_lookup_fiber = _ClientIpLookupFiber(ipinfo_token,
                                                            self.locations)
         self.client_ip_lookup_fiber.start()
@@ -79,7 +81,8 @@ class Statistics:
     def handle_request(self,
                        method: string,
                        path: string,
-                       client_ip_address: string):
+                       client_ip_address: string,
+                       referrer: string):
         key = f"{method} {path}"
 
         if key in self.requests:
@@ -87,10 +90,14 @@ class Statistics:
         elif len(self.requests) < 1000:
             self.requests[key] = 1
 
-        if client_ip_address is None:
-            return
+        if referrer is not None:
+            if referrer in self.referrers:
+                self.referrers[referrer] += 1
+            elif len(self.referrers) < 1000:
+                self.referrers[referrer] = 1
 
-        if len(self.clients_ip_addresses) < 1000:
-            self.clients_ip_addresses.add(client_ip_address)
+        if client_ip_address is not None:
+            if len(self.clients_ip_addresses) < 1000:
+                self.clients_ip_addresses.add(client_ip_address)
 
-        self.client_ip_lookup_fiber.queue.put(client_ip_address)
+            self.client_ip_lookup_fiber.queue.put(client_ip_address)
