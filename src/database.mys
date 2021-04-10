@@ -186,9 +186,9 @@ class Database:
         self._get_package_releases.bind_int(1, package.package_id)
 
         while self._get_package_releases.fetch():
-            package.releases += Release(self._get_package_releases.column_int(1),
-                                        self._get_package_releases.column_string(2),
-                                        self._get_package_releases.column_string(3))
+            package.releases.append(Release(self._get_package_releases.column_int(1),
+                                            self._get_package_releases.column_string(2),
+                                            self._get_package_releases.column_string(3)))
 
         return package
 
@@ -196,7 +196,7 @@ class Database:
         packages: [string] = []
 
         while self._get_packages.fetch():
-            packages += self._get_packages.column_string(0)
+            packages.append(self._get_packages.column_string(0))
 
         return packages
 

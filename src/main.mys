@@ -107,7 +107,7 @@ class ClientHandlerFiber(Fiber):
                 print(e)
 
             self.client.disconnect()
-            self.client_handlers += self
+            self.client_handlers.append(self)
 
     def make_path(self, path: string) -> string:
         """Prepend the database root directory path to given path. Given path
@@ -894,10 +894,10 @@ def main(argv: [string]):
     client_handlers: [ClientHandlerFiber] = []
 
     for i in range(20):
-        client_handlers += ClientHandlerFiber(database,
-                                              statistics,
-                                              client_handlers,
-                                              i)
+        client_handlers.append(ClientHandlerFiber(database,
+                                                  statistics,
+                                                  client_handlers,
+                                                  i))
         client_handlers[-1].start()
 
     server = Server()
