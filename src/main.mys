@@ -60,6 +60,7 @@ class Status:
     Unauthorized = 401
     NotFound = 404
     MethodNotAllowed = 405
+    Unknown = 1000
 
 _STATUS_STRINGS: {i64: string} = {
     i64(Status.Continue): "Continue",
@@ -78,6 +79,7 @@ class ClientHandlerFiber(Fiber):
     client: Client
     client_handlers: [ClientHandlerFiber]
     root_directory: string
+    response_status: Status
 
     def __init__(self,
                  database: Database,
@@ -91,6 +93,7 @@ class ClientHandlerFiber(Fiber):
         self.event = Event()
         self.client = None
         self.create_root_directory()
+        self.response_status = Status.Unknown
 
     def create_root_directory(self):
         rm(self.root_directory, recursive=True, force=True)
@@ -163,23 +166,12 @@ class ClientHandlerFiber(Fiber):
 
         return headers
 
-    def serve(self):
-        request = self.read_request_line()
-
-        if request is None:
-            self.write_response(Status.BadRequest)
-            return
-
-        method, path, params_string = request
-        params = parse_params(params_string)
-        headers = self.read_headers()
-
-        self.statistics.handle_request(method,
-                                       path,
-                                       headers.get("x-forwarded-for", None),
-                                       headers.get("referer", None))
-
-        # print(method, path, params_string)
+    def handle_request(self,
+                       method: string,
+                       path: string,
+                       params: {string: string},
+                       headers: {string: string}):
+        self.response_status = Status.Unknown
 
         if path == "/":
             self.handle_index(method)
@@ -244,6 +236,26 @@ class ClientHandlerFiber(Fiber):
             return
 
         self.handle_mys(method, path)
+
+    def serve(self):
+        request = self.read_request_line()
+
+        if request is None:
+            self.write_response(Status.BadRequest)
+            return
+
+        method, path, params_string = request
+        params = parse_params(params_string)
+        headers = self.read_headers()
+
+        try:
+            self.handle_request(method, path, params, headers)
+        finally:
+            self.statistics.handle_request(method,
+                                           path,
+                                           self.response_status,
+                                           headers.get("x-forwarded-for", None),
+                                           headers.get("referer", None))
 
     def handle_index(self, method: string):
         match method:
@@ -524,8 +536,14 @@ class ClientHandlerFiber(Fiber):
                         # Just approximate x and y.
                         x = (112.0 / 360.0) * (180.0 + location.longitude)
                         y = 4.0 + (60.0 / 180.0) * (90.0 - location.latitude)
+
+                        if location.response_status == Status.Ok:
+                            href = "a"
+                        else:
+                            href = "b"
+
                         locations += (
-                            f"""  <use href="#a" x="{x}" y="{y}" """
+                            f"""  <use href="#{href}" x="{x}" y="{y}" """
                             """style="opacity: 0.6"/>\n""")
 
                     self.write_response(Status.Ok,
@@ -841,6 +859,7 @@ class ClientHandlerFiber(Fiber):
                        status: Status,
                        headers: {string: string} = {},
                        data: string = None):
+        self.response_status = status
         status_string = _STATUS_STRINGS[i64(status)]
         # print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())
