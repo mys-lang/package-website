@@ -48,6 +48,9 @@ FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     "woff2": "font/woff2"
 }
 
+HEADER_END: bytes = b"\r\n"
+HEADERS_END: bytes = b"\r\n\r\n"
+
 class ReadError(Error):
     pass
 
@@ -141,7 +144,7 @@ class ClientHandlerFiber(Fiber):
             else:
                 overlap = u32(4)
 
-            self._header_size = self._header.find(b"\r\n\r\n",
+            self._header_size = self._header.find(HEADERS_END,
                                                   i64(offset - overlap),
                                                   i64(size + overlap))
             offset += size
@@ -153,7 +156,7 @@ class ClientHandlerFiber(Fiber):
                 break
 
     def read_line(self) -> string:
-        pos = self._header.find(b"\r\n", self._header_offset, self._header_size)
+        pos = self._header.find(HEADER_END, self._header_offset, self._header_size)
         offset = self._header_offset
         self._header_offset = pos + 2
 
