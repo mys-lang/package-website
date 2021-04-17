@@ -73,24 +73,6 @@ _STATUS_STRINGS: {i64: string} = {
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
 
-def find(needle: bytes, haystack: bytes, start: i64, end: i64) -> i64:
-    """Returns the offset from the beginning of the haystack where the
-    needle was first found.
-
-    """
-
-    for i in range(start, end):
-        found = True
-
-        for j in range(i64(len(needle))):
-            if needle[j] != haystack[i + j]:
-                found = False
-
-        if found:
-            return i
-
-    return -1
-
 class ClientHandlerFiber(Fiber):
     database: Database
     statistics: Statistics
@@ -159,10 +141,9 @@ class ClientHandlerFiber(Fiber):
             if offset >= 4:
                 overlap = 4
 
-            self._header_size = find(b"\r\n\r\n",
-                                     self._header,
-                                     i64(offset - overlap),
-                                     i64(size + overlap))
+            self._header_size = self._header.find(b"\r\n\r\n",
+                                                  i64(offset - overlap),
+                                                  i64(size + overlap))
             offset += size
 
             if self._header_size != -1:
@@ -172,7 +153,7 @@ class ClientHandlerFiber(Fiber):
                 break
 
     def read_line(self) -> string:
-        pos = find(b"\r\n", self._header, self._header_offset, self._header_size)
+        pos = self._header.find(b"\r\n", self._header_offset, self._header_size)
         offset = self._header_offset
         self._header_offset = pos + 2
 
