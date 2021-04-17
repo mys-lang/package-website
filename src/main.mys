@@ -24,7 +24,6 @@ from . import parse_params
 from .version import is_later_version
 from .statistics import Statistics
 from string import StringBuilder
-from sys import statistics as sys_statistics
 
 RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
 RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
@@ -128,7 +127,6 @@ class ClientHandlerFiber(Fiber):
 
     def read_header(self):
         offset: u32 = 0
-        overlap: u32 = 0
 
         while True:
             size = self.client.try_read_into(self._header,
@@ -138,8 +136,10 @@ class ClientHandlerFiber(Fiber):
             if size == 0:
                 raise ReadError()
 
-            if offset >= 4:
-                overlap = 4
+            if offset < 4:
+                overlap = offset
+            else:
+                overlap = u32(4)
 
             self._header_size = self._header.find(b"\r\n\r\n",
                                                   i64(offset - overlap),
@@ -956,7 +956,6 @@ def main(argv: [string]):
     print(f"Listening for clients on port {port}.")
 
     while True:
-        print(sys_statistics())
         client = server.accept()
 
         if len(client_handlers) > 0:
