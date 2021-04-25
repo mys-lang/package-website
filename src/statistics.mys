@@ -89,6 +89,9 @@ class Statistics:
                        response_status: Status,
                        client_ip_address: string,
                        referrer: string):
+        if not path.ends_with(".html"):
+            return
+
         key = f"{method} {path}"
 
         if key in self.requests:

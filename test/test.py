@@ -255,7 +255,6 @@ class StatisticsTest(TestCase):
         self.assert_in('Start date and time', response.text)
         self.assert_in('Traffic', response.text)
         self.assert_in('GET', response.text)
-        self.assert_in('POST', response.text)
 
 
 def main():
