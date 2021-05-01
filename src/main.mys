@@ -33,7 +33,7 @@ RE_MYS_VERSION_STATISTICS: regex = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
 RE_MYS_VERSION_WORLD_SVG: regex = re"^/\d+\.\d+\.\d+[\w-]*/_images/world.svg"
 RE_MYS_VERSION: regex = re"^/\d+\.\d+\.\d+[\w-]*/"
 RE_PACKAGE_TAR_GZ: regex = re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$"
-RE_PACKAGE_LATEST_TAR_GZ: regex = re"^/package/[\w-]+-latest.tar.gz$"
+RE_PACKAGE_LATEST_TAR_GZ: regex = re"^/package/([\w-]+)-latest.tar.gz$"
 RE_PACKAGE_OPERATIONS: regex = re"^/package/[\w-]+$"
 RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
 RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
@@ -219,8 +219,10 @@ class ClientHandlerFiber(Fiber):
             self.handle_package_tar_gz(method, path, params, headers, mo.group(1))
             return
 
-        if path.match(RE_PACKAGE_LATEST_TAR_GZ) is not None:
-            self.handle_package_latest_tar_gz(method, path)
+        mo = path.match(RE_PACKAGE_LATEST_TAR_GZ)
+
+        if mo is not None:
+            self.handle_package_latest_tar_gz(method, mo.group(1))
             return
 
         if path.match(RE_PACKAGE_OPERATIONS) is not None:
@@ -658,33 +660,34 @@ class ClientHandlerFiber(Fiber):
                               params: {string: string},
                               headers: {string: string},
                               package_name: string):
-        database_path = self.database.make_path(path[1:])
-
         match method:
             case "GET":
-                self.handle_package_tar_gz_get(package_name, database_path)
+                self.handle_package_tar_gz_get(package_name, path)
             case "POST":
-                self.handle_package_tar_gz_post(path, params, headers, database_path)
+                self.handle_package_tar_gz_post(path, params, headers)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_latest_tar_gz(self, method: string, path: string):
+    def handle_package_latest_tar_gz(self,
+                                     method: string,
+                                     package_name: string):
         match method:
             case "GET":
-                package_name = path[9:-14]
                 package = self.database.get_package(package_name)
 
                 if package is not None:
                     version = package.latest_release.version
-                    path = f"package/{package_name}-{version}.tar.gz"
-                    self.handle_package_tar_gz_get(package_name,
-                                                   self.database.make_path(path))
+                    self.handle_package_tar_gz_get(
+                        package_name,
+                        f"/package/{package_name}-{version}.tar.gz")
                 else:
                     self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_tar_gz_get(self, package_name: string, database_path: string):
+    def handle_package_tar_gz_get(self, package_name: string, path: string):
+        database_path = self.database.make_path(path[1:])
+
         if exists(database_path):
             data = BinaryFile(database_path).read()
             self.write_response(Status.Ok)
@@ -744,8 +747,7 @@ class ClientHandlerFiber(Fiber):
     def handle_package_tar_gz_post(self,
                                    path: string,
                                    params: {string: string},
-                                   headers: {string: string},
-                                   database_path: string):
+                                   headers: {string: string}):
         fiber_path = self.save_post_data_to_file(1_000_000, headers)
 
         if fiber_path is None:
@@ -796,6 +798,7 @@ class ClientHandlerFiber(Fiber):
             self.database.rollback_transaction()
             raise
 
+        database_path = self.database.make_path(path[1:])
         rm(database_path, force=True)
         mv(fiber_path, database_path)
         self.generate_package_documentation(package_name, version)
