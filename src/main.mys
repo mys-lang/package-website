@@ -167,8 +167,6 @@ class ClientHandlerFiber(Fiber):
         mo = line.match(RE_REQUEST)
 
         if mo is None:
-            print("Bad request line:", line)
-
             return None
 
         return (mo.group(1), mo.group(2), mo.group(3))
@@ -197,8 +195,7 @@ class ClientHandlerFiber(Fiber):
         self.response_status = Status.Unknown
 
         if path == "/":
-            self.handle_index(method)
-            return
+            path = "/index.html"
 
         if path.match(RE_MYS_VERSION_STANDARD_LIBRARY) is not None:
             self.handle_mys_version_standard_library(method, path)
@@ -280,19 +277,6 @@ class ClientHandlerFiber(Fiber):
                                            self.response_status,
                                            headers.get("x-forwarded-for", None),
                                            headers.get("referer", None))
-
-    def handle_index(self, method: string):
-        match method:
-            case "GET":
-                mys = self.database.get_mys()
-
-                if mys is not None:
-                    self.handle_mys(method, "/index.html")
-                else:
-                    self.write_response_type(Status.Ok, "text/html")
-                    self.client.write(b"<html>No mys documentation found!</html>")
-            case _:
-                self.write_response(Status.MethodNotAllowed)
 
     def handle_mys_version_standard_library(self, method: string, path: string):
         match method:
@@ -815,7 +799,7 @@ class ClientHandlerFiber(Fiber):
         rm(database_path, force=True)
         mv(fiber_path, database_path)
         self.generate_package_documentation(package_name, version)
-        self.write_response(Status.Ok, data=response_data)
+        self.write_response(Status.Ok, data=response_data.to_utf8())
 
     def handle_mys_tar_gz(self,
                           method: string,
@@ -873,7 +857,7 @@ class ClientHandlerFiber(Fiber):
             self.database.rollback_transaction()
             raise
 
-        self.write_response(Status.Ok, data=response_data)
+        self.write_response(Status.Ok, data=response_data.to_utf8())
 
     def handle_static_file(self, method: string, path: string):
         match method:
@@ -891,21 +875,19 @@ class ClientHandlerFiber(Fiber):
     def write_response(self,
                        status: Status,
                        headers: {string: string} = {},
-                       data: string = None):
+                       data: bytes = None):
         self.response_status = status
         status_string = _STATUS_STRINGS[i64(status)]
-        # print(status, status_string)
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())
 
         for name, value in headers:
             self.client.write(f"{name}: {value}\r\n".to_utf8())
 
         if data is None:
-            self.client.write("\r\n".to_utf8())
+            self.client.write(b"\r\n")
         else:
-            data_bytes = data.to_utf8()
-            self.client.write(f"content-length: {len(data_bytes)}\r\n\r\n".to_utf8())
-            self.client.write(data_bytes)
+            self.client.write(f"Content-Length: {len(data)}\r\n\r\n".to_utf8())
+            self.client.write(data)
 
     def write_static_response_ok(self, path: string):
         content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.split('.')[-1],

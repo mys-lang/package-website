@@ -72,8 +72,7 @@ class FreshDatabaseTest(TestCase):
 
     def run(self):
         response = self.http_get("/")
-        self.assert_equal(response.status_code, 200)
-        self.assert_in('<html>No mys documentation found!</html>', response.text)
+        self.assert_equal(response.status_code, 404)
 
 
 class MysTest(TestCase):
