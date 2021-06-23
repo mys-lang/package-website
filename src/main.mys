@@ -75,6 +75,99 @@ _STATUS_STRINGS: {i64: string} = {
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
 
+def create_request_table(name: string, requests: {string: i64}) -> (string, i64):
+    total_number_of_requests = 0
+    row_index = 0
+    builder = StringBuilder()
+    builder += (
+        "<table class=\"docutils align-default\" "
+        f"id=\"{name}\">\n"
+        "  <colgroup>\n"
+        "    <col/>\n"
+        "    <col/>\n"
+        "    <col/>\n"
+        "  </colgroup>\n"
+        "  <thead>\n"
+        "    <tr class=\"row-odd\">\n"
+        f"      <th class=\"head\" onclick=\"sortTable(0, '{name}')\">"
+        "Path</th>\n"
+        f"      <th class=\"head\" onclick=\"sortTable(1, '{name}')\">"
+        "Method</th>\n"
+        f"      <th class=\"head\" onclick=\"sortTable(2, '{name}')\">"
+        "Count</th>\n"
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+    )
+
+    for line, count in requests:
+        total_number_of_requests += count
+        pos = line.find(' ')
+        method = line[:pos]
+        request_path = line[pos + 1:]
+
+        if (row_index % 2) == 0:
+            builder += "    <tr class=\"row-even\">\n"
+        else:
+            builder += "    <tr class=\"row-odd\">\n"
+
+        builder += f"      <td>{request_path}</td>\n"
+        builder += f"      <td>{method}</td>\n"
+        builder += f"      <td>{count}</td>\n"
+        builder += "    </tr>\n"
+        row_index += 1
+
+    builder += (
+        "  </tbody>\n"
+        "</table>\n"
+    )
+
+    return builder.to_string(), total_number_of_requests
+
+_SORT_TABLE_JS: string = """\
+<script>
+function sortTable(n, element) {
+  var table, rows, switching, i, x, y;
+  var shouldSwitch, dir, switchcount = 0;
+  table = document.getElementById(element);
+  switching = true;
+  dir = \"asc\";
+  while (switching) {
+    switching = false;
+    rows = table.rows;
+    for (i = 1; i < (rows.length - 1); i++) {
+      shouldSwitch = false;
+      x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;
+      y = rows[i + 1].getElementsByTagName(\"TD\")[n].innerHTML;
+      if (dir == \"asc\") {
+        if (((n < 2) && (x > y))
+            || ((n == 2) && (parseInt(x) > parseInt(y)))) {
+          shouldSwitch = true;
+          break;
+        }
+      } else if (dir == \"desc\") {
+        if (((n < 2) && (x < y))
+            || ((n == 2) && (parseInt(x) < parseInt(y)))) {
+          shouldSwitch = true;
+          break;
+        }
+      }
+    }
+    if (shouldSwitch) {
+      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+      switching = true;
+      switchcount++;
+    } else {
+      if (switchcount == 0 && dir == \"asc\") {
+        dir = \"desc\";
+        switching = true;
+      }
+    }
+  }
+}
+</script>
+"""
+
 class ClientHandlerFiber(Fiber):
     database: Database
     statistics: Statistics
@@ -378,94 +471,12 @@ class ClientHandlerFiber(Fiber):
                 path = self.database.make_path(path[1:])
 
                 if exists(path):
-                    total_number_of_requests = 0
-                    row_index = 0
-                    requests = StringBuilder()
-                    requests += (
-                        "<table class=\"docutils align-default\" "
-                        "id=\"requestsTable\">\n"
-                        "  <colgroup>\n"
-                        "    <col/>\n"
-                        "    <col/>\n"
-                        "    <col/>\n"
-                        "  </colgroup>\n"
-                        "  <thead>\n"
-                        "    <tr class=\"row-odd\">\n"
-                        "      <th class=\"head\" onclick=\"sortTable(0)\">"
-                        "Path</th>\n"
-                        "      <th class=\"head\" onclick=\"sortTable(1)\">"
-                        "Method</th>\n"
-                        "      <th class=\"head\" onclick=\"sortTable(2)\">"
-                        "Count</th>\n"
-                        "    </tr>\n"
-                        "  </thead>\n"
-                        "  <tbody>\n"
-                    )
-
-                    for line, count in self.statistics.requests:
-                        total_number_of_requests += count
-                        pos = line.find(' ')
-                        method = line[:pos]
-                        request_path = line[pos + 1:]
-
-                        if (row_index % 2) == 0:
-                            requests += "    <tr class=\"row-even\">\n"
-                        else:
-                            requests += "    <tr class=\"row-odd\">\n"
-
-                        requests += f"      <td>{request_path}</td>\n"
-                        requests += f"      <td>{method}</td>\n"
-                        requests += f"      <td>{count}</td>\n"
-                        requests += "    </tr>\n"
-                        row_index += 1
-
-                    requests += (
-                        "  </tbody>\n"
-                        "</table>\n"
-                        "<script>\n"
-                        "function sortTable(n) {\n"
-                        "  var table, rows, switching, i, x, y;\n"
-                        "  var shouldSwitch, dir, switchcount = 0;\n"
-                        "  table = document.getElementById(\"requestsTable\");\n"
-                        "  switching = true;\n"
-                        "  dir = \"asc\";\n"
-                        "  while (switching) {\n"
-                        "    switching = false;\n"
-                        "    rows = table.rows;\n"
-                        "    for (i = 1; i < (rows.length - 1); i++) {\n"
-                        "      shouldSwitch = false;\n"
-                        "      x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;\n"
-                        "      y = rows[i + 1].getElementsByTagName(\"TD\")[n]"
-                        ".innerHTML;\n"
-                        "      if (dir == \"asc\") {\n"
-                        "        if (((n < 2) && (x > y))\n"
-                        "            || ((n == 2) && (parseInt(x) > parseInt(y)))) {\n"
-                        "          shouldSwitch = true;\n"
-                        "          break;\n"
-                        "        }\n"
-                        "      } else if (dir == \"desc\") {\n"
-                        "        if (((n < 2) && (x < y))\n"
-                        "            || ((n == 2) && (parseInt(x) < parseInt(y)))) {\n"
-                        "          shouldSwitch = true;\n"
-                        "          break;\n"
-                        "        }\n"
-                        "      }\n"
-                        "    }\n"
-                        "    if (shouldSwitch) {\n"
-                        "      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);\n"
-                        "      switching = true;\n"
-                        "      switchcount++;\n"
-                        "    } else {\n"
-                        "      if (switchcount == 0 && dir == \"asc\") {\n"
-                        "        dir = \"desc\";\n"
-                        "        switching = true;\n"
-                        "      }\n"
-                        "    }\n"
-                        "  }\n"
-                        "}\n"
-                        "</script>\n"
-                    )
-
+                    requests, total_number_of_requests = create_request_table(
+                        "requestsTable",
+                        self.statistics.requests.count)
+                    not_found_requests, total_number_of_requests = create_request_table(
+                        "notFoundRequestsTable",
+                        self.statistics.not_found_requests.count)
                     row_index = 0
                     referrers = StringBuilder()
                     referrers += (
@@ -483,7 +494,7 @@ class ClientHandlerFiber(Fiber):
                         "  <tbody>\n"
                     )
 
-                    for url, count in self.statistics.referrers:
+                    for url, count in self.statistics.referrers.count:
                         if (row_index % 2) == 0:
                             referrers += "    <tr class=\"row-even\">\n"
                         else:
@@ -494,22 +505,25 @@ class ClientHandlerFiber(Fiber):
                         referrers += "    </tr>\n"
                         row_index += 1
 
-                    referrers += ("  </tbody>\n"
-                                  "</table>\n")
+                    referrers += (
+                        "  </tbody>\n"
+                        "</table>\n"
+                    )
 
                     self.write_response_type(Status.Ok, "text/html")
                     data = TextFile(path).read()
                     data = data.replace("{website-start-date-time}",
                                         str(self.statistics.start_date_time))
-                    data = data.replace("{website-number-of-views}",
+                    data = data.replace("{website-number-of-requests}",
                                         str(total_number_of_requests))
+                    data = data.replace("<p>{website-requests}</p>", requests)
                     data = data.replace(
                         "{website-number-of-unique-visitors}",
                         str(len(self.statistics.clients_ip_addresses)))
-                    data = data.replace("<p>{website-requests}</p>",
-                                        requests.to_string())
                     data = data.replace("<p>{website-referrers}</p>",
                                         referrers.to_string())
+                    data = data.replace("<p>{website-not-found-requests}</p>",
+                                        not_found_requests + _SORT_TABLE_JS)
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)

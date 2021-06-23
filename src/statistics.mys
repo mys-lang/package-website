@@ -65,20 +65,40 @@ class _ClientIpLookupFiber(Fiber):
             except Error as e:
                 print(e)
 
+class OrderedCounter:
+    order: Fifo[string]
+    count: {string: i64}
+
+    def __init__(self):
+        self.order = Fifo[string](100)
+        self.count = {}
+
+    def increment(self, name: string):
+        if name in self.count:
+            self.count[name] += 1
+        else:
+            if self.order.is_full():
+                self.count.pop(self.order.pop(), 0)
+
+            self.count[name] = 1
+            self.order.push(name)
+
 class Statistics:
     start_date_time: LocalDateTime
-    requests: {string: i64}
+    requests: OrderedCounter
     locations: {string: Location}
     clients_ip_addresses: {string}
     client_ip_lookup_fiber: _ClientIpLookupFiber
-    referrers: {string: i64}
+    referrers: OrderedCounter
+    not_found_requests: OrderedCounter
 
     def __init__(self, ipinfo_token: string):
         self.start_date_time = LocalDateTime()
-        self.requests = {}
+        self.requests = OrderedCounter()
         self.locations = {}
         self.clients_ip_addresses = {}
-        self.referrers = {}
+        self.referrers = OrderedCounter()
+        self.not_found_requests = OrderedCounter()
         self.client_ip_lookup_fiber = _ClientIpLookupFiber(ipinfo_token,
                                                            self.locations)
         self.client_ip_lookup_fiber.start()
@@ -89,24 +109,21 @@ class Statistics:
                        response_status: Status,
                        client_ip_address: string,
                        referrer: string):
+        key = f"{method} {path}"
+
+        if response_status == Status.NotFound:
+            self.not_found_requests.increment(key)
+
         if not path.ends_with(".html"):
             return
 
-        key = f"{method} {path}"
-
-        if key in self.requests:
-            self.requests[key] += 1
-        elif len(self.requests) < 1000:
-            self.requests[key] = 1
+        self.requests.increment(key)
 
         if referrer is not None:
-            if referrer in self.referrers:
-                self.referrers[referrer] += 1
-            elif len(self.referrers) < 1000:
-                self.referrers[referrer] = 1
+            self.referrers.increment(referrer)
 
         if client_ip_address is not None:
-            if len(self.clients_ip_addresses) < 1000:
+            if len(self.clients_ip_addresses) < 100:
                 self.clients_ip_addresses.add(client_ip_address)
 
             self.client_ip_lookup_fiber.queue.put((client_ip_address,
