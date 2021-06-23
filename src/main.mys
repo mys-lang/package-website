@@ -474,7 +474,7 @@ class ClientHandlerFiber(Fiber):
                     requests, total_number_of_requests = create_request_table(
                         "requestsTable",
                         self.statistics.requests.count)
-                    not_found_requests, total_number_of_requests = create_request_table(
+                    not_found_requests, _ = create_request_table(
                         "notFoundRequestsTable",
                         self.statistics.not_found_requests.count)
                     row_index = 0
