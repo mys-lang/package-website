@@ -21,7 +21,7 @@ from fiber import Fiber
 from fiber import Event
 from . import create_token
 from . import parse_params
-from .version import is_later_version
+from semver import is_later_version
 from .statistics import Statistics
 from string import StringBuilder
 
