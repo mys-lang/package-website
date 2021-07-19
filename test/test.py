@@ -82,10 +82,10 @@ class MysTest(TestCase):
 
     def run(self):
         # Upload.
-        with open('mys-0.227.0.tar.gz', 'rb') as fin:
+        with open('mys-0.234.0.tar.gz', 'rb') as fin:
             data = fin.read()
 
-        response = self.http_post("/mys-0.227.0.tar.gz", data)
+        response = self.http_post("/mys-0.234.0.tar.gz", data)
         self.assert_equal(response.status_code, 200)
         token = response.json()['token']
 
@@ -93,10 +93,12 @@ class MysTest(TestCase):
         response = self.http_get("/")
         self.assert_equal(response.status_code, 200)
         self.assert_in('The Mys programming language', response.text)
+        self.assert_in('0.234.0', response.text)
+        self.assert_not_in('0.267.0', response.text)
 
         # Upload the same release a few more times.
         for _ in range(3):
-            response = self.http_post("/mys-0.227.0.tar.gz",
+            response = self.http_post("/mys-0.234.0.tar.gz",
                                       data,
                                       params={'token': token})
             self.assert_equal(response.status_code, 200)
@@ -106,6 +108,38 @@ class MysTest(TestCase):
         response = self.http_get("/")
         self.assert_equal(response.status_code, 200)
         self.assert_in('The Mys programming language', response.text)
+
+        # Upload a new version.
+        with open('mys-0.267.0.tar.gz', 'rb') as fin:
+            data = fin.read()
+
+        response = self.http_post("/mys-0.267.0.tar.gz",
+                                  data,
+                                  params={'token': token})
+        self.assert_equal(response.status_code, 200)
+
+        # Index exists.
+        response = self.http_get("/")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('The Mys programming language', response.text)
+        self.assert_not_in('0.234.0', response.text)
+        self.assert_in('0.267.0', response.text)
+
+        # Upload older version again. New should still be used.
+        with open('mys-0.234.0.tar.gz', 'rb') as fin:
+            data = fin.read()
+
+        response = self.http_post("/mys-0.234.0.tar.gz",
+                                  data,
+                                  params={'token': token})
+        self.assert_equal(response.status_code, 200)
+
+        # Index exists.
+        response = self.http_get("/")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('The Mys programming language', response.text)
+        self.assert_not_in('0.234.0', response.text)
+        self.assert_in('0.267.0', response.text)
 
 
 class PackageTest(TestCase):

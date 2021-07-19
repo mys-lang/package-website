@@ -21,7 +21,7 @@ from fiber import Fiber
 from fiber import Event
 from . import create_token
 from . import parse_params
-from semver import is_later_version
+from semver import Version
 from .statistics import Statistics
 from string import StringBuilder
 
@@ -804,7 +804,7 @@ class ClientHandlerFiber(Fiber):
 
             if package.latest_release is None:
                 self.database.modify_package(package, release)
-            elif is_later_version(version, package.latest_release.version):
+            elif Version(version) > Version(package.latest_release.version):
                 self.database.modify_package(package, release)
 
             self.database.commit_transaction()
@@ -866,7 +866,7 @@ class ClientHandlerFiber(Fiber):
 
             if mys.latest_release is None:
                 self.database.modify_mys(release)
-            elif is_later_version(version, mys.latest_release.version):
+            elif Version(version) > Version(mys.latest_release.version):
                 self.database.modify_mys(release)
 
             self.database.commit_transaction()
