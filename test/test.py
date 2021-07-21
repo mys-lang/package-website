@@ -58,8 +58,8 @@ class TestCase(systest.TestCase):
     def http_get(self, path):
         return requests.get(f"{BASE_URL}{path}")
 
-    def http_post(self, path, data, params=None):
-        return requests.post(f"{BASE_URL}{path}", data=data, params=params)
+    def http_post(self, path, data=None, params=None, json=None):
+        return requests.post(f"{BASE_URL}{path}", data=data, params=params, json=json)
 
     def http_delete(self, path, params=None):
         return requests.delete(f"{BASE_URL}{path}", params=params)
@@ -257,6 +257,35 @@ class PackageTest(TestCase):
         response = self.http_get("/package/foo-0.1.0.tar.gz")
         self.assert_equal(response.status_code, 200)
         self.assert_equal(response.content, expected_data)
+
+        # No build information available.
+        response = self.http_get("/standard-library.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_not_in('✅', response.content.decode('utf-8'))
+        self.assert_not_in('❌', response.content.decode('utf-8'))
+        self.assert_in('🤔', response.content.decode('utf-8'))
+
+        # Upload package build results.
+        response = self.http_post("/standard-library/build-results.json",
+                                  json={'foo': 'yes'})
+        self.assert_equal(response.status_code, 200)
+
+        response = self.http_get("/standard-library.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('✅', response.content.decode('utf-8'))
+        self.assert_not_in('❌', response.content.decode('utf-8'))
+        self.assert_not_in('🤔', response.content.decode('utf-8'))
+
+        # Upload package build results.
+        response = self.http_post("/standard-library/build-results.json",
+                                  json={'foo': 'no'})
+        self.assert_equal(response.status_code, 200)
+
+        response = self.http_get("/standard-library.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_not_in('✅', response.content.decode('utf-8'))
+        self.assert_in('❌', response.content.decode('utf-8'))
+        self.assert_not_in('🤔', response.content.decode('utf-8'))
 
 
 class PackageNoDocTest(TestCase):

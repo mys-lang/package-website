@@ -38,6 +38,7 @@ class Database:
     _delete_all_package_releases: Statement
     _modify_package: Statement
     _increment_package_download_count: Statement
+    _set_package_builds: Statement
     _get_package: Statement
     _get_packages: Statement
     _get_package_release: Statement
@@ -115,6 +116,8 @@ class Database:
         self._increment_package_download_count = self._database.prepare(
             "UPDATE packages SET number_of_downloads = number_of_downloads + 1 "
             "WHERE name == ?")
+        self._set_package_builds = self._database.prepare(
+            "UPDATE packages SET builds = ? WHERE name == ?")
         self._add_package_release = self._database.prepare(
             "INSERT OR IGNORE INTO releases (package_id, version, description) "
             "VALUES(?, ?, ?)")
@@ -160,6 +163,11 @@ class Database:
     def increment_package_download_count(self, package_name: string):
         self._increment_package_download_count.bind_string(1, package_name)
         self._increment_package_download_count.execute()
+
+    def set_package_builds(self, package_name: string, value: string):
+        self._set_package_builds.bind_string(1, value)
+        self._set_package_builds.bind_string(2, package_name)
+        self._set_package_builds.execute()
 
     def get_package(self, name: string) -> Package:
         self._get_package.bind_string(1, name)

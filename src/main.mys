@@ -25,6 +25,7 @@ from semver import Version
 from .statistics import Statistics
 from string import StringBuilder
 from . import Status
+from json import decode as json_decode
 
 RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
 RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
@@ -349,6 +350,10 @@ class ClientHandlerFiber(Fiber):
             self.handle_mys_world_svg(method, path)
             return
 
+        if path == "/standard-library/build-results.json":
+            self.handle_standard_library_build_results(method, headers)
+            return
+
         self.handle_mys(method, path)
 
     def serve(self):
@@ -551,6 +556,29 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
+    def handle_standard_library_build_results(self,
+                                              method: string,
+                                              headers: {string: string}):
+        match method:
+            case "POST":
+                content = self.read_post_content(1_000_000, headers)
+
+                if content is None:
+                    return
+
+                results = json_decode(string(content))
+
+                for package, value in results.get_object():
+                    builds = value.get_string()
+
+                    if builds in ["yes", "no"]:
+                        self.database.set_package_builds(package, builds)
+
+                self.write_response(Status.Ok)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+
     def handle_mys_version_world_svg(self, method: string, path: string):
         match method:
             case "GET":
@@ -713,12 +741,12 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def save_post_data_to_file(self,
-                               max_size: i64,
-                               headers: {string: string}) -> string:
+    def read_post_content(self,
+                          max_size: u64,
+                          headers: {string: string}) -> bytes:
         content_length = u64(headers["content-length"])
 
-        if content_length > 50_000_000:
+        if content_length > max_size:
             self.write_response(Status.BadRequest)
 
             return None
@@ -737,6 +765,16 @@ class ClientHandlerFiber(Fiber):
 
         if content_length > 0:
             data += self.client.read(content_length)
+
+        return data
+
+    def save_post_data_to_file(self,
+                               max_size: u64,
+                               headers: {string: string}) -> string:
+        data = self.read_post_content(max_size, headers)
+
+        if data is None:
+            return None
 
         self.create_root_directory()
         fiber_path = self.make_path("archive.tar.gz")
@@ -765,7 +803,7 @@ class ClientHandlerFiber(Fiber):
                                    path: string,
                                    params: {string: string},
                                    headers: {string: string}):
-        fiber_path = self.save_post_data_to_file(1_000_000, headers)
+        fiber_path = self.save_post_data_to_file(50_000_000, headers)
 
         if fiber_path is None:
             return
