@@ -40,6 +40,9 @@ def build_packages(packages):
 
         results[package] = result
 
+    for package, result in results.items():
+        print(f'{package}: {result}')
+
     return results
 
 
