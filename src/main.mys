@@ -24,6 +24,7 @@ from . import parse_params
 from semver import Version
 from .statistics import Statistics
 from string import StringBuilder
+from . import Status
 
 RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
 RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
@@ -53,17 +54,6 @@ HEADERS_END: bytes = b"\r\n\r\n"
 
 class ReadError(Error):
     pass
-
-@enum
-class Status:
-    Continue = 100
-    Ok = 200
-    Found = 302
-    BadRequest = 400
-    Unauthorized = 401
-    NotFound = 404
-    MethodNotAllowed = 405
-    Unknown = 1000
 
 _STATUS_STRINGS: {i64: string} = {
     i64(Status.Continue): "Continue",

@@ -15,6 +15,9 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -qq libuv1-dev -y
+        python -m pip install --upgrade pip
         pip install mys systest pexpect requests
     - name: Test
       run: |

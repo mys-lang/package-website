@@ -13,3 +13,14 @@ def parse_params(value: string) -> {string: string}:
             params[parts[0]] = parts[1]
 
     return params
+
+@enum
+class Status:
+    Continue = 100
+    Ok = 200
+    Found = 302
+    BadRequest = 400
+    Unauthorized = 401
+    NotFound = 404
+    MethodNotAllowed = 405
+    Unknown = 1000
