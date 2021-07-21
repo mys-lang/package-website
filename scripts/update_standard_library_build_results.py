@@ -34,9 +34,9 @@ def build_packages(packages):
         ])
 
         if proc.returncode == 0:
-            result = 'pass'
+            result = 'yes'
         else:
-            result = 'fail'
+            result = 'no'
 
         results[package] = result
 

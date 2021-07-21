@@ -65,6 +65,15 @@ _STATUS_STRINGS: {i64: string} = {
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
 
+def builds_to_emoji(result: string) -> string:
+    match result:
+        case "yes":
+            return "✅"
+        case "no":
+            return "❌"
+        case _:
+            return "🤔"
+
 def create_request_table(name: string, requests: {string: i64}) -> (string, i64):
     total_number_of_requests = 0
     row_index = 0
@@ -397,9 +406,7 @@ class ClientHandlerFiber(Fiber):
                         package = self.database.get_package(package_name)
                         number_of_packages += 1
                         number_of_downloads += package.number_of_downloads
-                        builds = "✅"
-                        builds = "❌"
-                        builds = "🤔"
+                        builds = builds_to_emoji(package.builds)
                         database_doc_path = (
                             f"/package/{package_name}/latest/index.html")
 

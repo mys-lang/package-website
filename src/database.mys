@@ -10,6 +10,7 @@ class Package:
     releases: [Release]
     token: string
     number_of_downloads: i64
+    builds: string
 
 class Release:
     release_id: i64
@@ -67,7 +68,8 @@ class Database:
                                "name TEXT NOT NULL UNIQUE,"
                                "latest_release_id INTEGER DEFAULT -1,"
                                "token TEXT NOT NULL,"
-                               "number_of_downloads INTEGER DEFAULT 0"
+                               "number_of_downloads INTEGER DEFAULT 0,"
+                               "builds TEXT"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS releases("
                                "release_id INTEGER PRIMARY KEY,"
@@ -170,7 +172,8 @@ class Database:
                           None,
                           [],
                           self._get_package.column_string(3),
-                          self._get_package.column_int(4))
+                          self._get_package.column_int(4),
+                          self._get_package.column_string(5))
         latest_release_id = self._get_package.column_int(2)
         self._get_package.fetch()
 
