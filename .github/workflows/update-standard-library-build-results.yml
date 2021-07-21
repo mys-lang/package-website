@@ -1,0 +1,27 @@
+name: Update standard library build results
+
+on:
+  schedule:
+    - cron:  '15 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  linux:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -qq libuv1-dev -y
+        python -m pip install --upgrade pip
+        pip install mys requests html5lib
+    - name: Test
+      run: |
+        python ../../scripts/update_standard_library_build_results.py
