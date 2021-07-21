@@ -385,6 +385,7 @@ class ClientHandlerFiber(Fiber):
                         "      <th class=\"head\">Description</th>\n"
                         "      <th class=\"head\">Version</th>\n"
                         "      <th class=\"head\">Downloads</th>\n"
+                        "      <th class=\"head\">Builds?</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
                         "  <tbody>\n"
@@ -396,6 +397,9 @@ class ClientHandlerFiber(Fiber):
                         package = self.database.get_package(package_name)
                         number_of_packages += 1
                         number_of_downloads += package.number_of_downloads
+                        builds = "✅"
+                        builds = "❌"
+                        builds = "🤔"
                         database_doc_path = (
                             f"/package/{package_name}/latest/index.html")
 
@@ -411,6 +415,7 @@ class ClientHandlerFiber(Fiber):
                             f"      <td>{package.latest_release.description}</td>\n")
                         packages += f"      <td>{package.latest_release.version}</td>\n"
                         packages += f"      <td>{package.number_of_downloads}</td>\n"
+                        packages += f"      <td>{builds}</td>\n"
                         packages += "    </tr>\n"
                         row_index += 1
 
@@ -418,7 +423,8 @@ class ClientHandlerFiber(Fiber):
                                  "</table>\n")
 
                     data = TextFile(path).read()
-                    data = data.replace("<p>{website-packages}</p>", packages.to_string())
+                    data = data.replace("<p>{website-packages}</p>",
+                                        packages.to_string())
                     data = data.replace("{website-number-of-packages}",
                                         str(number_of_packages))
                     data = data.replace("{website-number-of-downloads}",
