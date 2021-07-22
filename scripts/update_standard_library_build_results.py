@@ -59,7 +59,7 @@ def upload_build_results(results, logs):
 
     for package, log in logs.items():
         response = requests.post(
-            'https://mys-lang.org/standard-library/{package}/build-log.txt',
+            f'https://mys-lang.org/standard-library/{package}/build-log.txt',
             data=log)
         response.raise_for_status()
 
