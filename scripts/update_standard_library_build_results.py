@@ -24,6 +24,7 @@ def add_all_packages_to_dependencies(packages):
 
 def build_packages(packages):
     results = {}
+    logs = {}
 
     for package in packages:
         print(f'========================= {package} =========================')
