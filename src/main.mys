@@ -605,6 +605,12 @@ class ClientHandlerFiber(Fiber):
                 else:
                     self.write_response(Status.NotFound)
             case "POST":
+                package = self.database.get_package(package_name)
+
+                if package is None:
+                    self.write_response(Status.NotFound)
+                    return
+
                 data = self.read_post_content(5_000_000, headers)
                 log_path = self.database.make_path(f"standard-library/{package_name}")
                 mkdir(log_path, exists_ok=True)
