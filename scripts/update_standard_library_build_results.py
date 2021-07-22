@@ -27,11 +27,14 @@ def build_packages(packages):
 
     for package in packages:
         print(f'========================= {package} =========================')
-        proc = subprocess.run([
+        command = [
             'mys',
             '-C', f'all/build/dependencies/{package}-latest',
             'build'
-        ])
+        ]
+        proc = subprocess.run(command,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
 
         if proc.returncode == 0:
             result = 'yes'
@@ -39,18 +42,25 @@ def build_packages(packages):
             result = 'no'
 
         results[package] = result
+        logs[package] = proc.stdout
 
     for package, result in results.items():
         print(f'{package}: {result}')
 
-    return results
+    return results, logs
 
 
-def upload_build_results(results):
+def upload_build_results(results, logs):
     response = requests.post(
         'https://mys-lang.org/standard-library/build-results.json',
         json=results)
     response.raise_for_status()
+
+    for package, log in logs.items():
+        response = requests.post(
+            'https://mys-lang.org/standard-library/{package}/build-log.txt',
+            data=log)
+        response.raise_for_status()
 
 
 def main():
@@ -58,8 +68,8 @@ def main():
     subprocess.run(['mys', 'new', 'all'], check=True)
     add_all_packages_to_dependencies(packages)
     subprocess.run(['mys', '-C', 'all', 'build'])
-    results = build_packages(packages)
-    upload_build_results(results)
+    results, logs = build_packages(packages)
+    upload_build_results(results, logs)
 
 
 if __name__ == '__main__':
