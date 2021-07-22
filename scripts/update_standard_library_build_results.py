@@ -22,55 +22,49 @@ def add_all_packages_to_dependencies(packages):
             print(f'{package} = "latest"', file=fout)
 
 
-def build_packages(packages):
-    results = {}
-    logs = {}
+def build_package(package):
+    print(f'========================= {package} =========================')
+    command = [
+        'mys',
+        '-C', f'all/build/dependencies/{package}-latest',
+        'build'
+    ]
+    proc = subprocess.run(command,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT)
 
-    for package in packages:
-        print(f'========================= {package} =========================')
-        command = [
-            'mys',
-            '-C', f'all/build/dependencies/{package}-latest',
-            'build'
-        ]
-        proc = subprocess.run(command,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+    if proc.returncode == 0:
+        result = 'yes'
+    else:
+        result = 'no'
 
-        if proc.returncode == 0:
-            result = 'yes'
-        else:
-            result = 'no'
-
-        results[package] = result
-        logs[package] = proc.stdout
-
-    for package, result in results.items():
-        print(f'{package}: {result}')
-
-    return results, logs
+    return result, proc.stdout
 
 
-def upload_build_results(results, logs):
+def upload_build_result_and_log(package, result, log):
     response = requests.post(
         'https://mys-lang.org/standard-library/build-results.json',
-        json=results)
+        json={package: result})
     response.raise_for_status()
 
-    for package, log in logs.items():
-        response = requests.post(
-            f'https://mys-lang.org/standard-library/{package}/build-log.txt',
-            data=log)
-        response.raise_for_status()
+    response = requests.post(
+        f'https://mys-lang.org/standard-library/{package}/build-log.txt',
+        data=log)
+    response.raise_for_status()
 
+
+def build_and_upload_package(package):
+    result, log = build_package(package)
+    upload_build_result_and_log(package, result, log)
 
 def main():
     packages = list_all_packages()
     subprocess.run(['mys', 'new', 'all'], check=True)
     add_all_packages_to_dependencies(packages)
     subprocess.run(['mys', '-C', 'all', 'build'])
-    results, logs = build_packages(packages)
-    upload_build_results(results, logs)
+
+    for package in packages:
+        build_and_upload_package(package)
 
 
 if __name__ == '__main__':
