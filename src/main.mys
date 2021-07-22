@@ -600,7 +600,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 if exists(path):
                     self.write_response(Status.Ok,
-                                        headers={"Content-Type": "plain/text"})
+                                        headers={"Content-Type": "text/plain"})
                     self.client.write(BinaryFile(path).read())
                 else:
                     self.write_response(Status.NotFound)
