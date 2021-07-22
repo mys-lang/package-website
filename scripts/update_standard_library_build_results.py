@@ -1,6 +1,7 @@
 import subprocess
 import requests
 import html5lib
+from ansi2html import Ansi2HTMLConverter
 
 
 def list_all_packages():
@@ -48,8 +49,8 @@ def upload_build_result_and_log(package, result, log):
     response.raise_for_status()
 
     response = requests.post(
-        f'https://mys-lang.org/standard-library/{package}/build-log.txt',
-        data=log)
+        f'https://mys-lang.org/standard-library/{package}/build-log.html',
+        data=Ansi2HTMLConverter().convert(log))
     response.raise_for_status()
 
 

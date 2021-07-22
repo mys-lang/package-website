@@ -40,7 +40,7 @@ RE_PACKAGE_OPERATIONS: regex = re"^/package/[\w-]+$"
 RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
 RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
 RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
-RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.txt$"
+RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.html$"
 RE_STANDARD_LIBRARY_BUILD_RESULT: regex = re"^/standard-library/([\w-]+)/build-result.txt$"
 
 FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
@@ -424,7 +424,7 @@ class ClientHandlerFiber(Fiber):
                         number_of_downloads += package.number_of_downloads
                         builds_emoji = builds_to_emoji(package.builds)
                         builds_log_path = (
-                            f"/standard-library/{package_name}/build-log.txt")
+                            f"/standard-library/{package_name}/build-log.html")
                         database_doc_path = (
                             f"/package/{package_name}/latest/index.html")
 
@@ -603,7 +603,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 if exists(path):
                     self.write_response(Status.Ok,
-                                        headers={"Content-Type": "text/plain"})
+                                        headers={"Content-Type": "text/html"})
                     self.client.write(BinaryFile(path).read())
                 else:
                     self.write_response(Status.NotFound)

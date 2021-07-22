@@ -288,13 +288,13 @@ class PackageTest(TestCase):
         self.assert_not_in('🤔', response.content.decode('utf-8'))
 
         # Upload package build log.
-        response = self.http_post("/standard-library/foo/build-log.txt",
-                                  data=b'The foo log!')
+        response = self.http_post("/standard-library/foo/build-log.html",
+                                  data=b'<html>The foo log!</html>')
         self.assert_equal(response.status_code, 200)
 
-        response = self.http_get("/standard-library/foo/build-log.txt")
+        response = self.http_get("/standard-library/foo/build-log.html")
         self.assert_equal(response.status_code, 200)
-        self.assert_equal(b'The foo log!', response.content)
+        self.assert_equal(b'<html>The foo log!</html>', response.content)
 
 
 class PackageNoDocTest(TestCase):

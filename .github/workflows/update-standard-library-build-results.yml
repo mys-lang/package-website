@@ -21,7 +21,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -qq libuv1-dev libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libsdl2-image-dev -y
         python -m pip install --upgrade pip
-        pip install mys requests html5lib
+        pip install mys requests html5lib ansi2html
     - name: Test
       run: |
         python scripts/update_standard_library_build_results.py
