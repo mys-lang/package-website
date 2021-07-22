@@ -31,6 +31,7 @@ def build_package(package):
         'build'
     ]
     proc = subprocess.run(command,
+                          text=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
 
