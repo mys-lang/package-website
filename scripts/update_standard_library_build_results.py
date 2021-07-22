@@ -51,7 +51,7 @@ def upload_build_result_and_log(package, result, log):
 
     response = requests.post(
         f'https://mys-lang.org/standard-library/{package}/build-log.html',
-        data=Ansi2HTMLConverter().convert(log))
+        data=Ansi2HTMLConverter().convert(log).encode('utf-8'))
     response.raise_for_status()
 
 
