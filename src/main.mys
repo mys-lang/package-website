@@ -41,6 +41,7 @@ RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
 RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
 RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
 RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.txt$"
+RE_STANDARD_LIBRARY_BUILD_RESULT: regex = re"^/standard-library/([\w-]+)/build-result.txt$"
 
 FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     "html": "text/html",
@@ -351,8 +352,11 @@ class ClientHandlerFiber(Fiber):
             self.handle_mys_world_svg(method, path)
             return
 
-        if path == "/standard-library/build-results.json":
-            self.handle_standard_library_build_results(method, headers)
+
+        mo = path.match(RE_STANDARD_LIBRARY_BUILD_RESULT)
+
+        if mo is not None:
+            self.handle_standard_library_build_result(method, headers, mo.group(1))
             return
 
         mo = path.match(RE_STANDARD_LIBRARY_BUILD_LOG)
@@ -567,9 +571,10 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_standard_library_build_results(self,
-                                              method: string,
-                                              headers: {string: string}):
+    def handle_standard_library_build_result(self,
+                                             method: string,
+                                             headers: {string: string},
+                                             package_name: string):
         match method:
             case "POST":
                 content = self.read_post_content(1_000_000, headers)
@@ -577,15 +582,13 @@ class ClientHandlerFiber(Fiber):
                 if content is None:
                     return
 
-                results = json_decode(string(content))
+                builds = string(content)
 
-                for package, value in results.get_object():
-                    builds = value.get_string()
-
-                    if builds in ["yes", "no"]:
-                        self.database.set_package_builds(package, builds)
-
-                self.write_response(Status.Ok)
+                if builds in ["yes", "no"]:
+                    self.database.set_package_builds(package_name, builds)
+                    self.write_response(Status.Ok)
+                else:
+                    self.write_response(Status.BadRequest)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 

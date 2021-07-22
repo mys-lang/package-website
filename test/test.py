@@ -266,8 +266,8 @@ class PackageTest(TestCase):
         self.assert_in('🤔', response.content.decode('utf-8'))
 
         # Upload package build results.
-        response = self.http_post("/standard-library/build-results.json",
-                                  json={'foo': 'yes'})
+        response = self.http_post("/standard-library/foo/build-result.txt",
+                                  data='yes')
         self.assert_equal(response.status_code, 200)
 
         response = self.http_get("/standard-library.html")
@@ -277,8 +277,8 @@ class PackageTest(TestCase):
         self.assert_not_in('🤔', response.content.decode('utf-8'))
 
         # Upload package build results.
-        response = self.http_post("/standard-library/build-results.json",
-                                  json={'foo': 'no'})
+        response = self.http_post("/standard-library/foo/build-result.txt",
+                                  data='no')
         self.assert_equal(response.status_code, 200)
 
         response = self.http_get("/standard-library.html")

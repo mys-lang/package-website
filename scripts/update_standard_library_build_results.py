@@ -43,8 +43,8 @@ def build_package(package):
 
 def upload_build_result_and_log(package, result, log):
     response = requests.post(
-        'https://mys-lang.org/standard-library/build-results.json',
-        json={package: result})
+        f'https://mys-lang.org/standard-library/{package}/build-result.txt',
+        data=result)
     response.raise_for_status()
 
     response = requests.post(
