@@ -60,7 +60,11 @@ def build_package(package):
     else:
         result = 'no'
 
-    return result, header.encode('utf-8') + proc.stdout
+    log = header.encode('utf-8')
+    log += f'$ {" ".join(command)}\n'.encode('utf-8')
+    log += proc.stdout
+
+    return result, log
 
 
 def create_html_log(log):
