@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import shutil
 import pexpect
 import requests
@@ -297,6 +298,27 @@ class PackageTest(TestCase):
         self.assert_equal(b'<html>The foo log!</html>', response.content)
 
 
+class UpdateBuildResultsTest(TestCase):
+    """Update the build result for the foo package.
+
+    """
+
+    def run(self):
+        shutil.rmtree('all', ignore_errors=True)
+        command = [
+            sys.executable,
+            '../scripts/update_standard_library_build_results.py',
+            '--url', BASE_URL
+        ]
+        subprocess.run(command, check=True)
+
+        response = self.http_get("/standard-library/foo/build-log.html")
+        self.assert_equal(response.status_code, 200)
+        text = response.text
+        self.assert_equal(text.count('Reading package configuration'), 1)
+        self.assert_equal(text.count('Building'), 1)
+
+
 class PackageNoDocTest(TestCase):
 
     def run(self):
@@ -345,6 +367,7 @@ def main():
         FreshDatabaseTest(),
         MysTest(),
         PackageTest(),
+        UpdateBuildResultsTest(),
         PackageNoDocTest(),
         StatisticsTest()
     )
