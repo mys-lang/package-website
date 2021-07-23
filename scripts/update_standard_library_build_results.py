@@ -1,4 +1,6 @@
 import subprocess
+import platform
+import time
 from argparse import ArgumentParser
 import requests
 import html5lib
@@ -24,8 +26,26 @@ def add_all_packages_to_dependencies(packages):
             print(f'{package} = "latest"', file=fout)
 
 
+def create_log_header():
+    header = [
+        f'Date:      {time.ctime()}'
+    ]
+    uname = platform.uname()
+    header += [
+        f'System:    {uname.system}',
+        f'Node:      {uname.node}',
+        f'Release:   {uname.release}',
+        f'Version:   {uname.version}',
+        f'Machine:   {uname.machine}',
+        f'Processor: {uname.processor}'
+    ]
+
+    return '\n'.join(header) + '\n\n'
+
+
 def build_package(package):
     print(f'========================= {package} =========================')
+    header = create_log_header()
     command = [
         'mys',
         '-C', f'all/build/dependencies/{package}-latest',
@@ -40,7 +60,7 @@ def build_package(package):
     else:
         result = 'no'
 
-    return result, proc.stdout
+    return result, header.encode('utf-8') + proc.stdout
 
 
 def create_html_log(log):
