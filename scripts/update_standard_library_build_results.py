@@ -43,6 +43,18 @@ def build_package(package):
     return result, proc.stdout
 
 
+def create_html_log(log):
+    lines = []
+
+    for line in log.split('\n'):
+        lines.append(line[line.rfind('\r') + 1:])
+
+    log = '\n'.join(lines)
+    log = Ansi2HTMLConverter().convert(log)
+
+    return log
+
+
 def upload_build_result_and_log(package, result, log):
     response = requests.post(
         f'https://mys-lang.org/standard-library/{package}/build-result.txt',
@@ -51,13 +63,14 @@ def upload_build_result_and_log(package, result, log):
 
     response = requests.post(
         f'https://mys-lang.org/standard-library/{package}/build-log.html',
-        data=Ansi2HTMLConverter().convert(log).encode('utf-8'))
+        data=create_html_log(log).encode('utf-8'))
     response.raise_for_status()
 
 
 def build_and_upload_package(package):
     result, log = build_package(package)
     upload_build_result_and_log(package, result, log)
+
 
 def main():
     packages = list_all_packages()
