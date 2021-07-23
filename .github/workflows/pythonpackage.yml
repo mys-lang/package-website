@@ -18,7 +18,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -qq libuv1-dev -y
         python -m pip install --upgrade pip
-        pip install mys systest pexpect requests
+        pip install mys systest pexpect requests ansi2html
     - name: Test
       run: |
         mys build
