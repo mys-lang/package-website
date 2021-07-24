@@ -28,16 +28,22 @@ def add_all_packages_to_dependencies(packages):
 
 def create_log_header():
     header = [
-        f'Date:      {time.ctime()}'
+        f'Date:       {time.ctime()}'
     ]
     uname = platform.uname()
     header += [
-        f'System:    {uname.system}',
-        f'Node:      {uname.node}',
-        f'Release:   {uname.release}',
-        f'Version:   {uname.version}',
-        f'Machine:   {uname.machine}',
-        f'Processor: {uname.processor}'
+        f'System:     {uname.system}',
+        f'Node:       {uname.node}',
+        f'Release:    {uname.release}',
+        f'Version:    {uname.version}',
+        f'Machine:    {uname.machine}',
+        f'Processor:  {uname.processor}'
+    ]
+    mys_version = subprocess.run(['mys', '--version'],
+                                 text=True,
+                                 capture_output=True).stdout.strip()
+    header += [
+        f'MysVersion: {mys_version}'
     ]
 
     return '\n'.join(header) + '\n\n'
