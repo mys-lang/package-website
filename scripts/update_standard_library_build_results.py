@@ -110,7 +110,7 @@ def main():
     packages = list_all_packages(args.url)
     subprocess.run(['mys', 'new', 'all'], check=True)
     add_all_packages_to_dependencies(packages)
-    subprocess.run(['mys', '-C', 'all', 'build', '--url', args.url])
+    subprocess.run(['mys', '-C', 'all', 'fetch', '--url', args.url], check=True)
 
     for package in packages:
         build_and_upload_package(package, args.url)
