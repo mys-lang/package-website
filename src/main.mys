@@ -9,6 +9,7 @@ from os import mkdir
 from os.subprocess import run
 from os import rm
 from os import mv
+from os import extension
 from os import OsError
 from .database import Database
 from .database import Package
@@ -991,8 +992,7 @@ class ClientHandlerFiber(Fiber):
             self.client.write(data)
 
     def write_static_response_ok(self, path: string):
-        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.split('.')[-1],
-                                                       "text/plain")
+        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(extension(path), "text/plain")
 
         if content_type == "text/html":
             self.write_response_type(Status.Ok, content_type)
