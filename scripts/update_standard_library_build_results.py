@@ -26,7 +26,7 @@ def add_all_packages_to_dependencies(packages):
             print(f'{package} = "latest"', file=fout)
 
 
-def create_log_header():
+def create_log_header(package_root):
     header = [
         f'Date:       {time.ctime()}'
     ]
@@ -45,18 +45,21 @@ def create_log_header():
     header += [
         f'MysVersion: {mys_version}'
     ]
+    header += [
+        f"Configuration:"
+    ]
+
+    with open(f"{package_root}/package.toml") as fin:
+        header.append(fin.read().strip())
 
     return '\n'.join(header) + '\n\n'
 
 
 def build_package(package):
     print(f'========================= {package} =========================')
-    header = create_log_header()
-    command = [
-        'mys',
-        '-C', f'all/build/dependencies/{package}-latest',
-        'build'
-    ]
+    package_root = f'all/build/dependencies/{package}-latest'
+    header = create_log_header(package_root)
+    command = ['mys', '-C', package_root, 'build']
     proc = subprocess.run(command,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
