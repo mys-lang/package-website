@@ -543,7 +543,7 @@ class ClientHandlerFiber(Fiber):
                     data = data.replace("<p>{website-requests}</p>", requests)
                     data = data.replace(
                         "{website-number-of-unique-visitors}",
-                        str(len(self.statistics.clients_ip_addresses)))
+                        self.statistics.unique_clients())
                     data = data.replace("<p>{website-referrers}</p>",
                                         referrers.to_string())
                     data = data.replace("<p>{website-not-found-requests}</p>",

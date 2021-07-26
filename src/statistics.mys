@@ -128,3 +128,11 @@ class Statistics:
 
             self.client_ip_lookup_fiber.queue.put((client_ip_address,
                                                    i64(response_status)))
+
+    def unique_clients(self) -> string:
+        count = len(self.clients_ip_addresses)
+
+        if count < 100:
+            return str(count)
+        else:
+            return f"{count} (capped)"
