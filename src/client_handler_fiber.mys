@@ -495,9 +495,6 @@ class ClientHandlerFiber(Fiber):
                     requests, total_number_of_requests = create_request_table(
                         "requestsTable",
                         self.statistics.requests.count)
-                    not_found_requests, _ = create_request_table(
-                        "notFoundRequestsTable",
-                        self.statistics.not_found_requests.count)
                     row_index = 0
                     referrers = StringBuilder()
                     referrers += (
@@ -543,8 +540,6 @@ class ClientHandlerFiber(Fiber):
                         self.statistics.unique_clients())
                     data = data.replace("<p>{website-referrers}</p>",
                                         referrers.to_string())
-                    data = data.replace("<p>{website-not-found-requests}</p>",
-                                        not_found_requests + _SORT_TABLE_JS)
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)
