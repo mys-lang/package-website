@@ -35,7 +35,7 @@ Nginx terminates SSL/TLS.
 
 /etc/nginx/conf.d/mys-lang.org.conf:
 
-.. code-block:: text
+.. code-block:: nginx
 
     server {
         listen 80;
@@ -96,7 +96,7 @@ Systemd service
 
 /etc/systemd/system/mys-lang.org.service
 
-.. code-block::
+.. code-block:: ini
 
    [Unit]
    Description=Mys website
