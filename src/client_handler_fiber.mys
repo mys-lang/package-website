@@ -539,7 +539,7 @@ class ClientHandlerFiber(Fiber):
                         "{website-number-of-unique-visitors}",
                         self.statistics.unique_clients())
                     data = data.replace("<p>{website-referrers}</p>",
-                                        referrers.to_string())
+                                        referrers.to_string() + _SORT_TABLE_JS)
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)
