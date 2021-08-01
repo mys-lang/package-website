@@ -518,7 +518,7 @@ class ClientHandlerFiber(Fiber):
                         else:
                             referrers += "    <tr class=\"row-odd\">\n"
 
-                        referrers += f"      <td><a href=\"{url}\"/></td>\n"
+                        referrers += f"      <td><a href=\"{url}\">{url}</a></td>\n"
                         referrers += f"      <td>{count}</td>\n"
                         referrers += "    </tr>\n"
                         row_index += 1
