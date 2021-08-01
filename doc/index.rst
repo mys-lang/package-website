@@ -28,7 +28,11 @@ Start an webserver locally. Run ``mys run -- --help`` for options.
 
    ❯ mys run
     ✔ Reading package configuration (0 seconds)
-    ✔ Building (0.01 seconds)
+    ✔ Getting compiler flags openssl (0.01 seconds)
+    ✔ Getting linker flags for openssl (0 seconds)
+    ✔ Getting compiler flags sqlite3 (0 seconds)
+    ✔ Getting linker flags for sqlite3 (0.01 seconds)
+    ✔ Building (5.62 seconds)
    Number of packages: 0
    Listening for clients on port 8000.
 
