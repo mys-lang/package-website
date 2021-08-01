@@ -107,12 +107,10 @@ class Statistics:
                        response_status: Status,
                        client_ip_address: string,
                        referrer: string):
-        key = f"{method} {path}"
-
-        if not path.ends_with(".html"):
+        if not (path.ends_with(".html") or path == "/"):
             return
 
-        self.requests.increment(key)
+        self.requests.increment(f"{method} {path}")
 
         if referrer is not None:
             if not referrer.starts_with("https://mys-lang.org/"):
