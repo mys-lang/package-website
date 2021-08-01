@@ -1,4 +1,6 @@
+|discord|_
 |test|_
+|stars|_
 
 About
 =====
@@ -15,16 +17,18 @@ Run the test suite.
 
 .. code-block:: text
 
-   $ make test
+   make test
 
 Run locally
 ===========
 
 Start an webserver locally. Run ``mys run -- --help`` for options.
 
-.. code-block:: text
+.. code-block:: myscon
 
-   $ mys run
+   ❯ mys run
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
    Number of packages: 0
    Listening for clients on port 8000.
 
@@ -63,13 +67,13 @@ configuration. Enable redirect of http to https.
 
 .. code-block:: text
 
-   $ sudo certbot --nginx -d mys-lang.org
+   sudo certbot --nginx -d mys-lang.org
 
 Run once in a while to renew the certificate.
 
 .. code-block:: text
 
-   $ sudo certbot renew
+   sudo certbot renew
 
 ZFS storage with compression and deduplication
 ----------------------------------------------
@@ -116,17 +120,23 @@ Systemd service
 
 Enable it for automatic start at boot.
 
-.. code-block::
+.. code-block:: text
 
-   $ sudo systemctl enable mys-lang.org
+   sudo systemctl enable mys-lang.org
 
 Start it.
 
-.. code-block::
+.. code-block:: text
 
-   $ sudo systemctl start mys-lang.org
+   sudo systemctl start mys-lang.org
+
+.. |discord| image:: https://img.shields.io/discord/777073391320170507?label=Discord&logo=discord&logoColor=white
+.. _discord: https://discord.gg/GFDN7JvWKS
 
 .. |test| image:: https://github.com/mys-lang/package-website/actions/workflows/pythonpackage.yml/badge.svg
 .. _test: https://github.com/mys-lang/package-website/actions/workflows/pythonpackage.yml
+
+.. |stars| image:: https://img.shields.io/github/stars/mys-lang/package-website?style=social
+.. _stars: https://github.com/mys-lang/package-website
 
 .. _Mys programming language: https://mys-lang.org
