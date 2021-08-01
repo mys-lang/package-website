@@ -115,7 +115,8 @@ class Statistics:
         self.requests.increment(key)
 
         if referrer is not None:
-            self.referrers.increment(referrer)
+            if not referrer.starts_with("https://mys-lang.org/"):
+                self.referrers.increment(referrer)
 
         if client_ip_address is not None:
             if len(self.clients_ip_addresses) < 100:
