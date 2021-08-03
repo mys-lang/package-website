@@ -86,7 +86,7 @@ def create_request_table(name: string, requests: {string: i64}) -> (string, i64)
         "    <tr class=\"row-odd\">\n"
         f"      <th class=\"head\" onclick=\"sortTable(0, '{name}')\">"
         "Path</th>\n"
-        f"      <th class=\"head\" onclick=\"sortTable(2, '{name}')\">"
+        f"      <th class=\"head\" onclick=\"sortTable(1, '{name}')\">"
         "Count</th>\n"
         "    </tr>\n"
         "  </thead>\n"
