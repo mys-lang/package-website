@@ -129,14 +129,14 @@ function sortTable(n, element) {
       x = rows[i].getElementsByTagName(\"TD\")[n].innerHTML;
       y = rows[i + 1].getElementsByTagName(\"TD\")[n].innerHTML;
       if (dir == \"asc\") {
-        if (((n < 2) && (x > y))
-            || ((n == 2) && (parseInt(x) > parseInt(y)))) {
+        if (((n < 1) && (x > y))
+            || ((n == 1) && (parseInt(x) > parseInt(y)))) {
           shouldSwitch = true;
           break;
         }
       } else if (dir == \"desc\") {
-        if (((n < 2) && (x < y))
-            || ((n == 2) && (parseInt(x) < parseInt(y)))) {
+        if (((n < 1) && (x < y))
+            || ((n == 1) && (parseInt(x) < parseInt(y)))) {
           shouldSwitch = true;
           break;
         }
