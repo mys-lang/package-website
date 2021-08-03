@@ -82,17 +82,10 @@ def create_request_table(name: string, requests: {string: i64}) -> (string, i64)
     builder += (
         "<table class=\"docutils align-default\" "
         f"id=\"{name}\">\n"
-        "  <colgroup>\n"
-        "    <col/>\n"
-        "    <col/>\n"
-        "    <col/>\n"
-        "  </colgroup>\n"
         "  <thead>\n"
         "    <tr class=\"row-odd\">\n"
         f"      <th class=\"head\" onclick=\"sortTable(0, '{name}')\">"
         "Path</th>\n"
-        f"      <th class=\"head\" onclick=\"sortTable(1, '{name}')\">"
-        "Method</th>\n"
         f"      <th class=\"head\" onclick=\"sortTable(2, '{name}')\">"
         "Count</th>\n"
         "    </tr>\n"
@@ -100,19 +93,15 @@ def create_request_table(name: string, requests: {string: i64}) -> (string, i64)
         "  <tbody>\n"
     )
 
-    for line, count in requests:
+    for path, count in requests:
         total_number_of_requests += count
-        pos = line.find(' ')
-        method = line[:pos]
-        request_path = line[pos + 1:]
 
         if (row_index % 2) == 0:
             builder += "    <tr class=\"row-even\">\n"
         else:
             builder += "    <tr class=\"row-odd\">\n"
 
-        builder += f"      <td>{request_path}</td>\n"
-        builder += f"      <td>{method}</td>\n"
+        builder += f"      <td>{path}</td>\n"
         builder += f"      <td>{count}</td>\n"
         builder += "    </tr>\n"
         row_index += 1
@@ -397,11 +386,6 @@ class ClientHandlerFiber(Fiber):
                     packages = StringBuilder()
                     packages += (
                         "<table class=\"docutils align-default\">\n"
-                        "  <colgroup>\n"
-                        "    <col/>\n"
-                        "    <col/>\n"
-                        "    <col/>\n"
-                        "  </colgroup>\n"
                         "  <thead>\n"
                         "    <tr class=\"row-odd\">\n"
                         "      <th class=\"head\">Name</th>\n"
@@ -499,10 +483,6 @@ class ClientHandlerFiber(Fiber):
                     referrers = StringBuilder()
                     referrers += (
                         "<table class=\"docutils align-default\">\n"
-                        "  <colgroup>\n"
-                        "    <col/>\n"
-                        "    <col/>\n"
-                        "  </colgroup>\n"
                         "  <thead>\n"
                         "    <tr class=\"row-odd\">\n"
                         "      <th class=\"head\">URL</th>\n"

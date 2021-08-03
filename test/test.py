@@ -347,7 +347,7 @@ class StatisticsTest(TestCase):
         self.assert_in('Statistics', response.text)
         self.assert_in('Start date and time', response.text)
         self.assert_in('Traffic', response.text)
-        self.assert_in('GET', response.text)
+        self.assert_in('<td>/standard-library/foo/build-log.html</td>', response.text)
 
 
 def main():
