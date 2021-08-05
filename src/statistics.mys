@@ -8,6 +8,7 @@ from collections.fifo import Fifo
 from . import Status
 
 RE_LOCATION: regex = re"^([\d.-]+),([\d.-]+)$"
+RE_BOT: regex = re"bot"i
 
 class Location:
     latitude: f64
@@ -104,20 +105,25 @@ class Statistics:
     def handle_request(self,
                        method: string,
                        path: string,
-                       response_status: Status,
-                       client_ip_address: string,
-                       referrer: string):
+                       headers: {string: string},
+                       response_status: Status):
         if method != "GET":
             return
 
         if not (path.ends_with(".html") or path == "/"):
             return
 
+        if headers.get("user-agent", "bot").match(RE_BOT) is not None:
+            return
+
         self.requests.increment(path)
+        referrer = headers.get("referer", None)
 
         if referrer is not None:
             if not referrer.starts_with("https://mys-lang.org/"):
                 self.referrers.increment(referrer)
+
+        client_ip_address = headers.get("x-forwarded-for", None)
 
         if client_ip_address is not None:
             if len(self.clients_ip_addresses) < 100:
@@ -133,3 +139,34 @@ class Statistics:
             return str(count)
         else:
             return f"{count} (capped)"
+
+@test
+def test_bot_user_agent():
+    statistics = Statistics(None)
+
+    statistics.handle_request(
+        "GET",
+        "/",
+        {
+            "user-agent": ("Mozilla/5.0 (compatible; bingbot/2.0; "
+                           "+http://www.bing.com/bingbot.htm)")
+        },
+        Status.Ok)
+    assert len(statistics.requests.count) == 0
+
+    statistics.handle_request(
+        "GET",
+        "/",
+        {
+            "user-agent": "Mozilla/5.0"
+        },
+        Status.Ok)
+    assert len(statistics.requests.count) == 1
+
+    statistics.handle_request(
+        "GET",
+        "/",
+        {
+        },
+        Status.Ok)
+    assert len(statistics.requests.count) == 1

@@ -371,9 +371,8 @@ class ClientHandlerFiber(Fiber):
         finally:
             self.statistics.handle_request(method,
                                            path,
-                                           self.response_status,
-                                           headers.get("x-forwarded-for", None),
-                                           headers.get("referer", None))
+                                           headers,
+                                           self.response_status)
 
     def handle_mys_version_standard_library(self, method: string, path: string):
         match method:
