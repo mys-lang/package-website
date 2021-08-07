@@ -19,14 +19,13 @@ from toml import Value as TomlValue
 from fiber import Fiber
 from fiber import Event
 from . import create_token
-from . import parse_params
+from http.header_parser import HeaderParser
+from http.header_parser import parse_params
 from semver import Version
 from .statistics import Statistics
 from string import StringBuilder
 from . import Status
 
-RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
-RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
 RE_MYS_VERSION_STANDARD_LIBRARY: regex = (
     re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
 RE_MYS_VERSION_STATISTICS: regex = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
@@ -166,8 +165,8 @@ class ClientHandlerFiber(Fiber):
     root_directory: string
     response_status: Status
     _header: bytes
-    _header_offset: i64
     _header_size: i64
+    _header_parser: HeaderParser
     _data_size: i64
 
     def __init__(self,
@@ -184,6 +183,7 @@ class ClientHandlerFiber(Fiber):
         self.create_root_directory()
         self.response_status = Status.Unknown
         self._header = bytes(2048)
+        self._header_parser = HeaderParser(self._header)
 
     def create_root_directory(self):
         rm(self.root_directory, recursive=True, force=True)
@@ -232,42 +232,10 @@ class ClientHandlerFiber(Fiber):
             offset += size
 
             if self._header_size != -1:
-                self._header_offset = 0
                 self._header_size += 4
+                self._header_parser.reset(u64(self._header_size))
                 self._data_size = i64(offset) - self._header_size
                 break
-
-    def read_line(self) -> string:
-        pos = self._header.find(HEADER_END, self._header_offset, self._header_size)
-        offset = self._header_offset
-        self._header_offset = pos + 2
-
-        return string(self._header, offset, pos)
-
-    def read_request_line(self) -> (string, string, string):
-        line = self.read_line()
-        mo = line.match(RE_REQUEST)
-
-        if mo is None:
-            return None
-
-        return (mo.group(1), mo.group(2), mo.group(3))
-
-    def read_headers(self) -> {string: string}:
-        headers: {string: string} = {}
-
-        while True:
-            line = self.read_line()
-
-            if len(line) == 0:
-                break
-
-            mo = line.match(RE_HEADER_LINE)
-
-            if mo is not None:
-                headers[mo.group(1).lower()] = mo.group(2)
-
-        return headers
 
     def handle_request(self,
                        method: string,
@@ -356,7 +324,7 @@ class ClientHandlerFiber(Fiber):
 
     def serve(self):
         self.read_header()
-        request = self.read_request_line()
+        request = self._header_parser.read_request_line()
 
         if request is None:
             self.write_response(Status.BadRequest)
@@ -364,7 +332,7 @@ class ClientHandlerFiber(Fiber):
 
         method, path, params_string = request
         params = parse_params(params_string)
-        headers = self.read_headers()
+        headers = self._header_parser.read_headers()
 
         try:
             self.handle_request(method, path, params, headers)
