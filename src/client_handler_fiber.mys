@@ -20,7 +20,9 @@ from fiber import Fiber
 from fiber import Event
 from . import create_token
 from http.header_parser import HeaderParser
-from http.header_parser import parse_params
+from http import HttpError
+from http.header_parser import Request
+from http.header_parser import parse_query
 from semver import Version
 from .statistics import Statistics
 from string import StringBuilder
@@ -233,7 +235,6 @@ class ClientHandlerFiber(Fiber):
 
             if self._header_size != -1:
                 self._header_size += 4
-                self._header_parser.reset(u64(self._header_size))
                 self._data_size = i64(offset) - self._header_size
                 break
 
@@ -324,22 +325,24 @@ class ClientHandlerFiber(Fiber):
 
     def serve(self):
         self.read_header()
-        request = self._header_parser.read_request_line()
+        # ToDo: Should not be needed.
+        request: Request = None
 
-        if request is None:
+        try:
+            request = self._header_parser.parse_request(u64(self._header_size))
+        except HttpError:
             self.write_response(Status.BadRequest)
             return
 
-        method, path, params_string = request
-        params = parse_params(params_string)
-        headers = self._header_parser.read_headers()
-
         try:
-            self.handle_request(method, path, params, headers)
+            self.handle_request(request.method,
+                                request.path,
+                                request.params,
+                                request.headers)
         finally:
-            self.statistics.handle_request(method,
-                                           path,
-                                           headers,
+            self.statistics.handle_request(request.method,
+                                           request.path,
+                                           request.headers,
                                            self.response_status)
 
     def handle_mys_version_standard_library(self, method: string, path: string):
