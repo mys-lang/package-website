@@ -1,6 +1,7 @@
 from fiber import Fiber
 from fiber import Queue
 from http import get as http_get
+from http.header_parser import Request
 from json import decode as json_decode
 from json import Value as JsonValue
 from time import LocalDateTime
@@ -102,16 +103,16 @@ class Statistics:
                                                            self.locations)
         self.client_ip_lookup_fiber.start()
 
-    def handle_request(self,
-                       method: string,
-                       path: string,
-                       headers: {string: string},
-                       response_status: Status):
-        if method != "GET":
+    def handle_request(self, request: Request, response_status: Status):
+        if request.method != "GET":
             return
+
+        path = request.path
 
         if not (path.ends_with(".html") or path == "/"):
             return
+
+        headers = request.headers
 
         if headers.get("user-agent", "bot").match(RE_BOT) is not None:
             return
@@ -145,28 +146,37 @@ def test_bot_user_agent():
     statistics = Statistics(None)
 
     statistics.handle_request(
-        "GET",
-        "/",
-        {
-            "user-agent": ("Mozilla/5.0 (compatible; bingbot/2.0; "
-                           "+http://www.bing.com/bingbot.htm)")
-        },
-        Status.Ok)
+        Request("GET",
+                "/",
+                None,
+                {},
+                None,
+                {
+                    "user-agent": ("Mozilla/5.0 (compatible; bingbot/2.0; "
+                                   "+http://www.bing.com/bingbot.htm)")
+                }),
+                Status.Ok)
     assert len(statistics.requests.count) == 0
 
     statistics.handle_request(
-        "GET",
-        "/",
-        {
-            "user-agent": "Mozilla/5.0"
-        },
+        Request("GET",
+                "/",
+                None,
+                {},
+                None,
+                {
+                    "user-agent": "Mozilla/5.0"
+                }),
         Status.Ok)
     assert len(statistics.requests.count) == 1
 
     statistics.handle_request(
-        "GET",
-        "/",
-        {
-        },
-        Status.Ok)
+        Request("GET",
+                "/",
+                None,
+                {},
+                None,
+                {
+                }),
+                Status.Ok)
     assert len(statistics.requests.count) == 1

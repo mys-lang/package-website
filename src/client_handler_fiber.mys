@@ -238,90 +238,88 @@ class ClientHandlerFiber(Fiber):
                 self._data_size = i64(offset) - self._header_size
                 break
 
-    def handle_request(self,
-                       method: string,
-                       path: string,
-                       params: {string: string},
-                       headers: {string: string}):
+    def handle_request(self, request: Request):
         self.response_status = Status.Unknown
 
-        if path == "/":
-            path = "/index.html"
+        if request.path == "/":
+            request.path = "/index.html"
+
+        path = request.path
 
         if path.match(RE_MYS_VERSION_STANDARD_LIBRARY) is not None:
-            self.handle_mys_version_standard_library(method, path)
+            self.handle_mys_version_standard_library(request)
             return
 
         if path.match(RE_MYS_VERSION_STATISTICS) is not None:
-            self.handle_mys_version_statistics(method, path)
+            self.handle_mys_version_statistics(request)
             return
 
         if path.match(RE_MYS_VERSION_WORLD_SVG) is not None:
-            self.handle_mys_version_world_svg(method, path)
+            self.handle_mys_version_world_svg(request)
             return
 
         if path.match(RE_MYS_VERSION) is not None:
-            self.handle_mys_version(method, path)
+            self.handle_mys_version(request)
             return
 
         mo = path.match(RE_PACKAGE_TAR_GZ)
 
         if mo is not None:
-            self.handle_package_tar_gz(method, path, params, headers, mo.group(1))
+            self.handle_package_tar_gz(request, mo.group(1))
             return
 
         mo = path.match(RE_PACKAGE_LATEST_TAR_GZ)
 
         if mo is not None:
-            self.handle_package_latest_tar_gz(method, mo.group(1))
+            self.handle_package_latest_tar_gz(request, mo.group(1))
             return
 
         if path.match(RE_PACKAGE_OPERATIONS) is not None:
-            self.handle_package_operations(method, path, params)
+            self.handle_package_operations(request)
             return
 
         if path.match(RE_PACKAGE_LATEST) is not None:
-            self.handle_package_latest(method, path)
+            self.handle_package_latest(request)
             return
 
         if path.starts_with("/package/"):
-            self.handle_package(method, path)
+            self.handle_package(request)
             return
 
         if path.match(RE_MYS_TAR_GZ) is not None:
-            self.handle_mys_tar_gz(method, path, params, headers)
+            self.handle_mys_tar_gz(request)
             return
 
         if path == "/favicon.ico":
-            self.handle_static_file(method, path)
+            self.handle_static_file(request)
             return
 
         if path == "/standard-library.html":
-            self.handle_mys_standard_library(method, path)
+            self.handle_mys_standard_library(request)
             return
 
         if path == "/statistics.html":
-            self.handle_mys_statistics(method, path)
+            self.handle_mys_statistics(request)
             return
 
         if path == "/_images/world.svg":
-            self.handle_mys_world_svg(method, path)
+            self.handle_mys_world_svg(request)
             return
 
 
         mo = path.match(RE_STANDARD_LIBRARY_BUILD_RESULT)
 
         if mo is not None:
-            self.handle_standard_library_build_result(method, headers, mo.group(1))
+            self.handle_standard_library_build_result(request, mo.group(1))
             return
 
         mo = path.match(RE_STANDARD_LIBRARY_BUILD_LOG)
 
         if mo is not None:
-            self.handle_standard_library_build_log(method, path, headers, mo.group(1))
+            self.handle_standard_library_build_log(request, mo.group(1))
             return
 
-        self.handle_mys(method, path)
+        self.handle_mys(request)
 
     def serve(self):
         self.read_header()
@@ -334,21 +332,20 @@ class ClientHandlerFiber(Fiber):
             self.write_response(Status.BadRequest)
             return
 
-        try:
-            self.handle_request(request.method,
-                                request.path,
-                                request.params,
-                                request.headers)
-        finally:
-            self.statistics.handle_request(request.method,
-                                           request.path,
-                                           request.headers,
-                                           self.response_status)
+        # The handler method may change the path, but we want the
+        # original path in the statistics.
+        path = request.path
 
-    def handle_mys_version_standard_library(self, method: string, path: string):
-        match method:
+        try:
+            self.handle_request(request)
+        finally:
+            request.path = path
+            self.statistics.handle_request(request, self.response_status)
+
+    def handle_mys_version_standard_library(self, request: Request):
+        match request.method:
             case "GET":
-                path = self.database.make_path(path[1:])
+                path = self.database.make_path(request.path[1:])
 
                 if exists(path):
                     self.write_static_response_ok(path)
@@ -414,14 +411,14 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_version(self, method: string, path: string):
-        match method:
+    def handle_mys_version(self, request: Request):
+        match request.method:
             case "GET":
-                if ".." in path:
+                if ".." in request.path:
                     self.write_response(Status.BadRequest)
                     return
 
-                path = self.database.make_path(path[1:])
+                path = self.database.make_path(request.path[1:])
 
                 if exists(path):
                     self.write_static_response_ok(path)
@@ -431,19 +428,19 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_standard_library(self, method: string, path: string):
+    def handle_mys_standard_library(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
-            path = f"/{mys.latest_release.version}{path}"
-            self.handle_mys_version_standard_library(method, path)
+            request.path = f"/{mys.latest_release.version}{request.path}"
+            self.handle_mys_version_standard_library(request)
         else:
             self.write_response(Status.NotFound)
 
-    def handle_mys_version_statistics(self, method: string, path: string):
-        match method:
+    def handle_mys_version_statistics(self, request: Request):
+        match request.method:
             case "GET":
-                path = self.database.make_path(path[1:])
+                path = self.database.make_path(request.path[1:])
 
                 if exists(path):
                     requests, total_number_of_requests = create_request_table(
@@ -496,31 +493,30 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_statistics(self, method: string, path: string):
+    def handle_mys_statistics(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
-            path = f"/{mys.latest_release.version}{path}"
-            self.handle_mys_version_statistics(method, path)
+            request.path = f"/{mys.latest_release.version}{request.path}"
+            self.handle_mys_version_statistics(request)
         else:
             self.write_response(Status.NotFound)
 
-    def handle_mys_world_svg(self, method: string, path: string):
+    def handle_mys_world_svg(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
-            path = f"/{mys.latest_release.version}{path}"
-            self.handle_mys_version_world_svg(method, path)
+            request.path = f"/{mys.latest_release.version}{request.path}"
+            self.handle_mys_version_world_svg(request)
         else:
             self.write_response(Status.NotFound)
 
     def handle_standard_library_build_result(self,
-                                             method: string,
-                                             headers: {string: string},
+                                             request: Request,
                                              package_name: string):
-        match method:
+        match request.method:
             case "POST":
-                content = self.read_post_content(1_000_000, headers)
+                content = self.read_post_content(1_000_000, request.headers)
 
                 if content is None:
                     return
@@ -536,13 +532,11 @@ class ClientHandlerFiber(Fiber):
                 self.write_response(Status.MethodNotAllowed)
 
     def handle_standard_library_build_log(self,
-                                          method: string,
-                                          path: string,
-                                          headers: {string: string},
+                                          request: Request,
                                           package_name: string):
-        path = self.database.make_path(path[1:])
+        path = self.database.make_path(request.path[1:])
 
-        match method:
+        match request.method:
             case "GET":
                 if exists(path):
                     self.write_response(Status.Ok,
@@ -557,7 +551,7 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.NotFound)
                     return
 
-                data = self.read_post_content(5_000_000, headers)
+                data = self.read_post_content(5_000_000, request.headers)
                 log_path = self.database.make_path(f"standard-library/{package_name}")
                 mkdir(log_path, exists_ok=True)
                 BinaryFile(path, "w").write(data)
@@ -565,10 +559,10 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_version_world_svg(self, method: string, path: string):
-        match method:
+    def handle_mys_version_world_svg(self, request: Request):
+        match request.method:
             case "GET":
-                path = self.database.make_path(path[1:])
+                path = self.database.make_path(request.path[1:])
 
                 if exists(path):
                     locations = StringBuilder()
@@ -598,29 +592,26 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys(self, method: string, path: string):
+    def handle_mys(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
-            path = f"/{mys.latest_release.version}{path}"
-            self.handle_mys_version(method, path)
+            request.path = f"/{mys.latest_release.version}{request.path}"
+            self.handle_mys_version(request)
         else:
             self.write_response(Status.NotFound)
 
-    def handle_package_operations(self,
-                                  method: string,
-                                  path: string,
-                                  params: {string: string}):
-        match method:
+    def handle_package_operations(self, request: Request):
+        match request.method:
             case "DELETE":
-                package_name = path[9:]
+                package_name = request.path[9:]
                 package = self.database.get_package(package_name)
 
                 if package is None:
                     self.write_response(Status.NotFound)
                     return
 
-                if not self.validate_token(params, package.token):
+                if not self.validate_token(request.params, package.token):
                     return
 
                 self.database.delete_package(package)
@@ -637,25 +628,25 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_latest(self, method: string, path: string):
-        parts = path.split('/')
+    def handle_package_latest(self, request: Request):
+        parts = request.path.split('/')
         package_name = parts[2]
         package = self.database.get_package(package_name)
 
         if package is not None:
-            path = path.replace("latest", package.latest_release.version)
-            self.handle_mys_version(method, path)
+            request.path = request.path.replace("latest", package.latest_release.version)
+            self.handle_mys_version(request)
         else:
             self.write_response(Status.NotFound)
 
-    def handle_package(self, method: string, path: string):
-        match method:
+    def handle_package(self, request: Request):
+        match request.method:
             case "GET":
-                if ".." in path:
+                if ".." in request.path:
                     self.write_response(Status.BadRequest)
                     return
 
-                path = self.database.make_path(path[1:])
+                path = self.database.make_path(request.path[1:])
 
                 if exists(path):
                     self.write_static_response_ok(path)
@@ -685,24 +676,21 @@ class ClientHandlerFiber(Fiber):
             data = b"<html>No package documentation found!</html>"
             BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
 
-    def handle_package_tar_gz(self,
-                              method: string,
-                              path: string,
-                              params: {string: string},
-                              headers: {string: string},
-                              package_name: string):
-        match method:
+    def handle_package_tar_gz(self, request: Request, package_name: string):
+        match request.method:
             case "GET":
-                self.handle_package_tar_gz_get(package_name, path)
+                self.handle_package_tar_gz_get(package_name, request.path)
             case "POST":
-                self.handle_package_tar_gz_post(path, params, headers)
+                self.handle_package_tar_gz_post(request.path,
+                                                request.params,
+                                                request.headers)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
     def handle_package_latest_tar_gz(self,
-                                     method: string,
+                                     request: Request,
                                      package_name: string):
-        match method:
+        match request.method:
             case "GET":
                 package = self.database.get_package(package_name)
 
@@ -845,30 +833,22 @@ class ClientHandlerFiber(Fiber):
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
-    def handle_mys_tar_gz(self,
-                          method: string,
-                          path: string,
-                          params: {string: string},
-                          headers: {string: string}):
-        database_path = self.database.make_path(path[1:])
+    def handle_mys_tar_gz(self, request: Request):
+        database_path = self.database.make_path(request.path[1:])
 
-        match method:
+        match request.method:
             case "POST":
-                self.handle_mys_tar_gz_post(path, params, headers, database_path)
+                self.handle_mys_tar_gz_post(request, database_path)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_tar_gz_post(self,
-                               path: string,
-                               params: {string: string},
-                               headers: {string: string},
-                               database_path: string):
-        fiber_path = self.save_post_data_to_file(50_000_000, headers)
+    def handle_mys_tar_gz_post(self, request: Request, database_path: string):
+        fiber_path = self.save_post_data_to_file(50_000_000, request.headers)
 
         if fiber_path is None:
             return
 
-        version = path[5:-7]
+        version = request.path[5:-7]
         rm(self.database.make_path(version), recursive=True, force=True)
         tar(fiber_path,
             extract=True,
@@ -884,7 +864,7 @@ class ClientHandlerFiber(Fiber):
                 self.database.create_mys(create_token())
                 mys = self.database.get_mys()
                 response_data = f"{{\"token\": \"{mys.token}\"}}"
-            elif not self.validate_token(params, mys.token):
+            elif not self.validate_token(request.params, mys.token):
                 self.database.rollback_transaction()
                 return
 
@@ -903,10 +883,10 @@ class ClientHandlerFiber(Fiber):
 
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
-    def handle_static_file(self, method: string, path: string):
-        match method:
+    def handle_static_file(self, request: Request):
+        match request.method:
             case "GET":
-                path = f"{__assets__}{path}"
+                path = f"{__assets__}{request.path}"
 
                 if exists(path) and ".." not in path:
                     self.write_static_response_ok(path)
