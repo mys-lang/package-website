@@ -50,13 +50,12 @@ FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     "woff2": "font/woff2"
 }
 
-HEADER_END: bytes = b"\r\n"
 HEADERS_END: bytes = b"\r\n\r\n"
 
 class ReadError(Error):
     pass
 
-_STATUS_STRINGS: {i64: string} = {
+STATUS_STRINGS: {i64: string} = {
     i64(Status.Continue): "Continue",
     i64(Status.Ok): "OK",
     i64(Status.Found): "Found",
@@ -113,7 +112,7 @@ def create_request_table(name: string, requests: {string: i64}) -> (string, i64)
 
     return builder.to_string(), total_number_of_requests
 
-_SORT_TABLE_JS: string = """\
+SORT_TABLE_JS: string = """\
 <script>
 function sortTable(n, element) {
   var table, rows, switching, i, x, y;
@@ -483,7 +482,7 @@ class ClientHandlerFiber(Fiber):
                         "{website-number-of-unique-visitors}",
                         self.statistics.unique_clients())
                     data = data.replace("<p>{website-referrers}</p>",
-                                        referrers.to_string() + _SORT_TABLE_JS)
+                                        referrers.to_string() + SORT_TABLE_JS)
                     self.client.write(data.to_utf8())
                 else:
                     self.write_response(Status.NotFound)
@@ -898,7 +897,7 @@ class ClientHandlerFiber(Fiber):
                        headers: {string: string} = {},
                        data: bytes = None):
         self.response_status = status
-        status_string = _STATUS_STRINGS[i64(status)]
+        status_string = STATUS_STRINGS[i64(status)]
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())
 
         for name, value in headers:
