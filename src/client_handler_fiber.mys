@@ -19,10 +19,9 @@ from toml import Value as TomlValue
 from fiber import Fiber
 from fiber import Event
 from . import create_token
-from http.header_parser import HeaderParser
+from http.header_parser import parse_request
 from http import HttpError
 from http.header_parser import Request
-from http.header_parser import parse_query
 from semver import Version
 from .statistics import Statistics
 from string import StringBuilder
@@ -168,7 +167,6 @@ class ClientHandlerFiber(Fiber):
     response_status: Status
     _header: bytes
     _header_size: i64
-    _header_parser: HeaderParser
     _data_size: i64
 
     def __init__(self,
@@ -185,7 +183,6 @@ class ClientHandlerFiber(Fiber):
         self.create_root_directory()
         self.response_status = Status.Unknown
         self._header = bytes(2048)
-        self._header_parser = HeaderParser(self._header)
 
     def create_root_directory(self):
         rm(self.root_directory, recursive=True, force=True)
@@ -327,7 +324,7 @@ class ClientHandlerFiber(Fiber):
         request: Request = None
 
         try:
-            request = self._header_parser.parse_request(u64(self._header_size))
+            request = parse_request(self._header, u64(self._header_size))
         except HttpError:
             self.write_response(Status.BadRequest)
             return
