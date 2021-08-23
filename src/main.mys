@@ -5,7 +5,7 @@ from .statistics import Statistics
 from .client_handler_fiber import ClientHandlerFiber
 
 def main(argv: [string]):
-    parser = Parser("website")
+    parser = Parser(version=__version__)
     parser.add_option("--port",
                       short="-p",
                       default="8000",
@@ -24,13 +24,15 @@ def main(argv: [string]):
     statistics = Statistics(args.value_of("--ipinfo-token"))
 
     client_handlers: [ClientHandlerFiber] = []
+    idle_client_handlers: [i64] = []
 
     for i in range(20):
         client_handlers.append(ClientHandlerFiber(database,
                                                   statistics,
-                                                  client_handlers,
+                                                  idle_client_handlers,
                                                   i))
         client_handlers[-1].start()
+        idle_client_handlers.append(i)
 
     server = Server()
     port = u32(args.value_of("--port"))
@@ -41,8 +43,8 @@ def main(argv: [string]):
     while True:
         client = server.accept()
 
-        if len(client_handlers) > 0:
-            client_handler = client_handlers.pop()
+        if len(idle_client_handlers) > 0:
+            client_handler = client_handlers[idle_client_handlers.pop()]
             client_handler.client = client
             client_handler.event.set()
         else:
