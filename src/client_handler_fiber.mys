@@ -321,8 +321,6 @@ class ClientHandlerFiber(Fiber):
 
     def serve(self):
         self.read_header()
-        # ToDo: Should not be needed.
-        request: Request = None
 
         try:
             request = parse_request(self._header, u64(self._header_size))
