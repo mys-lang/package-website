@@ -21,6 +21,7 @@ jobs:
         pip install mys systest pexpect requests html5lib ansi2html
     - name: Test
       run: |
+        mys test
         mys build
         make test
 
