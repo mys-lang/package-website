@@ -47,7 +47,7 @@ class _ClientIpLookupFiber(Fiber):
                 content = string(http_get("ipinfo.io",
                                           80,
                                           f"/{client_ip_address}?token={self.token}",
-                                          secure=False)[1])
+                                          secure=False).content)
 
                 mo = json_decode(content).get("loc").get_string().match(RE_LOCATION)
 
