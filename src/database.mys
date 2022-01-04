@@ -204,7 +204,7 @@ class Database:
         return package
 
     def get_packages(self) -> [string]:
-        packages: [string] = []
+        packages = []
 
         while self._get_packages.fetch():
             packages.append(self._get_packages.column_string(0))
