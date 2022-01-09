@@ -1,4 +1,7 @@
 build
 *~
+.coverage
+.mys-coverage.txt
+coverage/
 test/storage
 .website
