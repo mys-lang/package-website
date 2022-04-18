@@ -162,6 +162,7 @@ class ClientHandlerFiber(Fiber):
     event: Event
     client: Client
     idle_client_handlers: [i64]
+    idle_client_handlers_ready: Event
     index: i64
     root_directory: string
     response_status: Status
@@ -173,10 +174,12 @@ class ClientHandlerFiber(Fiber):
                  database: Database,
                  statistics: Statistics,
                  idle_client_handlers: [i64],
+                 idle_client_handlers_ready: Event,
                  index: i64):
         self.database = database
         self.statistics = statistics
         self.idle_client_handlers = idle_client_handlers
+        self.idle_client_handlers_ready = idle_client_handlers_ready
         self.index = index
         self.root_directory = f".website/{index}"
         self.event = Event()
@@ -201,6 +204,7 @@ class ClientHandlerFiber(Fiber):
 
             self.client.disconnect()
             self.idle_client_handlers.append(self.index)
+            self.idle_client_handlers_ready.set()
 
     def make_path(self, path: string) -> string:
         """Prepend the database root directory path to given path. Given path

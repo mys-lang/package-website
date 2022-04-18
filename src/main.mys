@@ -1,5 +1,6 @@
 from argparse import Parser
 from argparse import ValueType
+from fiber import Event
 from net.tcp.server import Server
 from .database import Database
 from .statistics import Statistics
@@ -27,11 +28,13 @@ def main(argv: [string]):
 
     client_handlers: [ClientHandlerFiber] = []
     idle_client_handlers: [i64] = []
+    idle_client_handlers_ready = Event()
 
     for i in range(20):
         client_handlers.append(ClientHandlerFiber(database,
                                                   statistics,
                                                   idle_client_handlers,
+                                                  idle_client_handlers_ready,
                                                   i))
         client_handlers[-1].start()
         idle_client_handlers.append(i)
@@ -43,11 +46,11 @@ def main(argv: [string]):
     print(f"Listening for clients on port {port}.")
 
     while True:
-        client = server.accept()
+        if len(idle_client_handlers) == 0:
+            idle_client_handlers_ready.clear()
+            idle_client_handlers_ready.wait()
 
-        if len(idle_client_handlers) > 0:
-            client_handler = client_handlers[idle_client_handlers.pop()]
-            client_handler.client = client
-            client_handler.event.set()
-        else:
-            print("No client handler available.")
+        client = server.accept()
+        client_handler = client_handlers[idle_client_handlers.pop()]
+        client_handler.client = client
+        client_handler.event.set()
