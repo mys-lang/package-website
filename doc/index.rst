@@ -46,7 +46,7 @@ Nginx terminates SSL/TLS.
 .. code-block:: nginx
 
     server {
-        listen 80;
+        listen 80 http2;
         server_name mys-lang.org;
         gzip on;
         gzip_types image/svg+xml application/javascript text/css text/html;
