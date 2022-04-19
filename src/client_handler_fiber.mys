@@ -192,6 +192,10 @@ class ClientHandlerFiber(Fiber):
         rm(self.root_directory, recursive=True, force=True)
         mkdir(self.root_directory, exists_ok=True)
 
+    def serve_client(self, client: Client):
+        self.client = client
+        self.event.set()
+
     def run(self):
         while True:
             self.event.wait()

@@ -52,5 +52,4 @@ def main(argv: [string]):
 
         client = server.accept()
         client_handler = client_handlers[idle_client_handlers.pop()]
-        client_handler.client = client
-        client_handler.event.set()
+        client_handler.serve_client(client)
