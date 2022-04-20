@@ -21,7 +21,7 @@ def list_all_packages(url):
 
 
 def add_all_packages_to_dependencies(packages):
-    with open('all/package.toml', 'a') as fout:
+    with open('stdall/package.toml', 'a') as fout:
         for package in packages:
             print(f'{package} = "latest"', file=fout)
 
@@ -57,7 +57,7 @@ def create_log_header(package_root):
 
 def build_package(package):
     print(f'========================= {package} =========================')
-    package_root = f'all/build/dependencies/{package}-latest'
+    package_root = f'stdall/build/dependencies/{package}-latest'
     header = create_log_header(package_root)
     command = ['mys', '-C', package_root, 'build']
     proc = subprocess.run(command,
@@ -111,9 +111,9 @@ def main():
     args = parser.parse_args()
 
     packages = list_all_packages(args.url)
-    subprocess.run(['mys', 'new', 'all'], check=True)
+    subprocess.run(['mys', 'new', 'stdall'], check=True)
     add_all_packages_to_dependencies(packages)
-    subprocess.run(['mys', '-C', 'all', 'fetch', '--url', args.url], check=True)
+    subprocess.run(['mys', '-C', 'stdall', 'test', '-d', '--url', args.url], check=True)
 
     for package in packages:
         build_and_upload_package(package, args.url)

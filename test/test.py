@@ -304,7 +304,7 @@ class UpdateBuildResultsTest(TestCase):
     """
 
     def run(self):
-        shutil.rmtree('all', ignore_errors=True)
+        shutil.rmtree('stdall', ignore_errors=True)
         command = [
             sys.executable,
             '../scripts/update_standard_library_build_results.py',
