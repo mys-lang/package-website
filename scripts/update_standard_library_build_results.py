@@ -65,7 +65,7 @@ def create_log_header(package_root):
     return '\n'.join(header) + '\n\n'
 
 
-def build_package(package, url):
+def build_package(package, url, jobs):
     with tempfile.TemporaryDirectory() as tempdir:
         original_dir = os.getcwd()
         os.chdir(tempdir)
@@ -83,6 +83,10 @@ def build_package(package, url):
             print(f'========================= {package} =========================')
             package_root = glob.glob('package/*')[0]
             command = ['mys', '-C', package_root, 'build', '--url', url]
+
+            if jobs is not None:
+                command += ['-j', jobs]
+
             proc = subprocess.run(command,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT)
@@ -126,21 +130,22 @@ def upload_build_result_and_log(package, result, log, url):
     response.raise_for_status()
 
 
-def build_and_upload_package(package, url):
-    result, log = build_package(package, url)
+def build_and_upload_package(package, url, jobs):
+    result, log = build_package(package, url, jobs)
     upload_build_result_and_log(package, result, log, url)
 
 
 def main():
     parser = ArgumentParser()
     parser.add_argument('-u', '--url', default='https://mys-lang.org')
+    parser.add_argument('-j', '--jobs')
     args = parser.parse_args()
 
     packages = list_all_packages(args.url)
     clear_cache()
 
     for package in packages:
-        build_and_upload_package(package, args.url)
+        build_and_upload_package(package, args.url, args.jobs)
 
 
 if __name__ == '__main__':
