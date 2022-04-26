@@ -1,6 +1,6 @@
 from sqlite import Database as SqliteDatabase
 from sqlite import Statement
-from os import mkdir
+from os.path import Path
 from fiber import Lock
 
 class Package:
@@ -45,13 +45,13 @@ class Database:
     _get_package_release_by_id: Statement
     _get_package_releases: Statement
     _add_package_release: Statement
-    root_directory: string
+    root_directory: Path
     _lock: Lock
 
-    def __init__(self, root_directory: string):
+    def __init__(self, root_directory: Path):
         self.root_directory = root_directory
         self._lock = Lock()
-        mkdir(root_directory, exists_ok=True)
+        root_directory.mkdir(exists_ok=True)
 
         self._database = SqliteDatabase(self.make_path("website.sqlite"))
 
@@ -122,7 +122,7 @@ class Database:
             "INSERT OR IGNORE INTO releases (package_id, version, description) "
             "VALUES(?, ?, ?)")
 
-        mkdir(self.make_path("package"), exists_ok=True)
+        self.make_path("package").mkdir(exists_ok=True)
 
     def begin_transaction(self):
         self._lock.acquire()
@@ -136,13 +136,13 @@ class Database:
         self._database.execute("ROLLBACK")
         self._lock.release()
 
-    def make_path(self, path: string) -> string:
+    def make_path(self, path: string) -> Path:
         """Prepend the database root directory path to given path. Given path
         must not start with a slash.
 
         """
 
-        return f"{self.root_directory}/{path}"
+        return self.root_directory / path
 
     def create_package(self, name: string, token: string):
         self._create_package.bind_string(1, name)

@@ -1,13 +1,8 @@
 from net.tcp.server import Client
-from os import BinaryFile
-from os import TextFile
 from os import tar
-from os import exists
-from os import mkdir
-from os import rm
 from os import mv
-from os import extension
 from os import OsError
+from os.path import Path
 from os.subprocess import run
 from .database import Database
 from .database import Package
@@ -42,12 +37,12 @@ RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.
 RE_STANDARD_LIBRARY_BUILD_RESULT: regex = re"^/standard-library/([\w-]+)/build-result.txt$"
 
 FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
-    "html": "text/html",
-    "css": "text/css",
-    "js": "application/javascript",
-    "svg": "image/svg+xml",
-    "png": "image/png",
-    "woff2": "font/woff2"
+    ".html": "text/html",
+    ".css": "text/css",
+    ".js": "application/javascript",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".woff2": "font/woff2"
 }
 
 HEADERS_END: bytes = b"\r\n\r\n"
@@ -164,7 +159,7 @@ class ClientHandlerFiber(Fiber):
     idle_client_handlers: [i64]
     idle_client_handlers_ready: Event
     index: i64
-    root_directory: string
+    root_directory: Path
     response_status: Status
     _header: bytes
     _header_size: i64
@@ -181,7 +176,7 @@ class ClientHandlerFiber(Fiber):
         self.idle_client_handlers = idle_client_handlers
         self.idle_client_handlers_ready = idle_client_handlers_ready
         self.index = index
-        self.root_directory = f".website/{index}"
+        self.root_directory = Path(f".website/{index}")
         self.event = Event()
         self.client = None
         self.create_root_directory()
@@ -189,8 +184,8 @@ class ClientHandlerFiber(Fiber):
         self._header = bytes(2048)
 
     def create_root_directory(self):
-        rm(self.root_directory, recursive=True, force=True)
-        mkdir(self.root_directory, exists_ok=True)
+        self.root_directory.rm(recursive=True, force=True)
+        self.root_directory.mkdir(exists_ok=True)
 
     def serve_client(self, client: Client):
         self.client = client
@@ -210,13 +205,13 @@ class ClientHandlerFiber(Fiber):
             self.idle_client_handlers.append(self.index)
             self.idle_client_handlers_ready.set()
 
-    def make_path(self, path: string) -> string:
+    def make_path(self, path: string) -> Path:
         """Prepend the database root directory path to given path. Given path
         must not start with a slash.
 
         """
 
-        return f"{self.root_directory}/{path}"
+        return self.root_directory / path
 
     def read_header(self):
         offset: u64 = 0
@@ -351,7 +346,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 path = self.database.make_path(request.path[1:])
 
-                if exists(path):
+                if path.exists():
                     self.write_static_response_ok(path)
                     row_index = 0
                     packages = StringBuilder()
@@ -402,7 +397,7 @@ class ClientHandlerFiber(Fiber):
                     packages += ("  </tbody>\n"
                                  "</table>\n")
 
-                    data = TextFile(path).read()
+                    data = path.read_text()
                     data = data.replace("<p>{website-packages}</p>",
                                         packages.to_string())
                     data = data.replace("{website-number-of-packages}",
@@ -424,9 +419,9 @@ class ClientHandlerFiber(Fiber):
 
                 path = self.database.make_path(request.path[1:])
 
-                if exists(path):
+                if path.exists():
                     self.write_static_response_ok(path)
-                    self.client.write(BinaryFile(path).read())
+                    self.client.write(path.read_binary())
                 else:
                     self.write_response(Status.NotFound)
             case _:
@@ -446,7 +441,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 path = self.database.make_path(request.path[1:])
 
-                if exists(path):
+                if path.exists():
                     requests, total_number_of_requests = create_request_table(
                         "requestsTable",
                         self.statistics.requests.count)
@@ -480,7 +475,7 @@ class ClientHandlerFiber(Fiber):
                     )
 
                     self.write_response_type(Status.Ok, "text/html")
-                    data = TextFile(path).read()
+                    data = path.read_text()
                     data = data.replace("{website-start-date-time}",
                                         str(self.statistics.start_date_time))
                     data = data.replace("{website-number-of-requests}",
@@ -542,10 +537,10 @@ class ClientHandlerFiber(Fiber):
 
         match request.method:
             case "GET":
-                if exists(path):
+                if path.exists():
                     self.write_response(Status.Ok,
                                         headers={"Content-Type": "text/html"})
-                    self.client.write(BinaryFile(path).read())
+                    self.client.write(path.read_binary())
                 else:
                     self.write_response(Status.NotFound)
             case "POST":
@@ -557,8 +552,8 @@ class ClientHandlerFiber(Fiber):
 
                 data = self.read_post_content(5_000_000, request.headers)
                 log_path = self.database.make_path(f"standard-library/{package_name}")
-                mkdir(log_path, exists_ok=True)
-                BinaryFile(path, "w").write(data)
+                log_path.mkdir(exists_ok=True)
+                path.write_binary(data)
                 self.write_response(Status.Ok)
             case _:
                 self.write_response(Status.MethodNotAllowed)
@@ -568,7 +563,7 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 path = self.database.make_path(request.path[1:])
 
-                if exists(path):
+                if path.exists():
                     locations = StringBuilder()
 
                     for _, location in self.statistics.locations:
@@ -587,7 +582,7 @@ class ClientHandlerFiber(Fiber):
 
                     self.write_response(Status.Ok,
                                         headers={"Content-Type": "image/svg+xml"})
-                    world = TextFile(path).read()
+                    world = path.read_text()
                     world = world.replace("  <!-- {website-world} -->",
                                           locations.to_string())
                     self.client.write(world.to_utf8())
@@ -621,12 +616,12 @@ class ClientHandlerFiber(Fiber):
                 self.database.delete_package(package)
                 package_database_path = self.database.make_path(
                     f"package/{package_name}")
-                rm(package_database_path, recursive=True, force=True)
+                package_database_path.rm(recursive=True, force=True)
 
                 for release in package.releases:
                     release_database_path = self.database.make_path(
                         f"package/{package.name}-{release.version}.tar.gz")
-                    rm(release_database_path, force=True)
+                    release_database_path.rm(force=True)
 
                 self.write_response(Status.Ok)
             case _:
@@ -652,9 +647,9 @@ class ClientHandlerFiber(Fiber):
 
                 path = self.database.make_path(request.path[1:])
 
-                if exists(path):
+                if path.exists():
                     self.write_static_response_ok(path)
-                    self.client.write(BinaryFile(path).read())
+                    self.client.write(path.read_binary())
                 else:
                     self.write_response(Status.NotFound)
             case _:
@@ -665,20 +660,20 @@ class ClientHandlerFiber(Fiber):
                                        version: string):
         database_doc_path = self.database.make_path(
             f"package/{package_name}/{version}")
-        rm(database_doc_path, recursive=True, force=True)
-        mkdir(database_doc_path, exists_ok=True)
+        database_doc_path.rm(recursive=True, force=True)
+        database_doc_path.mkdir(exists_ok=True)
 
-        if exists(f"{self.root_directory}/doc"):
+        if Path(f"{self.root_directory}/doc").exists():
             try:
                 run(f"mys -C {self.root_directory} doc")
-                rm(database_doc_path)
-                mv(f"{self.root_directory}/build/doc/html", database_doc_path)
+                database_doc_path.rm()
+                mv(f"{self.root_directory}/build/doc/html", str(database_doc_path))
             except OsError:
                 data = b"<html>Package documentation build failed!</html>"
-                BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
+                (database_doc_path / "index.html").write_binary(data)
         else:
             data = b"<html>No package documentation found!</html>"
-            BinaryFile(f"{database_doc_path}/index.html", "w").write(data)
+            (database_doc_path / "index.html").write_binary(data)
 
     def handle_package_tar_gz(self, request: Request, package_name: string):
         match request.method:
@@ -711,8 +706,8 @@ class ClientHandlerFiber(Fiber):
     def handle_package_tar_gz_get(self, package_name: string, path: string):
         database_path = self.database.make_path(path[1:])
 
-        if exists(database_path):
-            data = BinaryFile(database_path).read()
+        if database_path.exists():
+            data = database_path.read_binary()
             self.write_response(Status.Ok)
             self.client.write(data)
             self.database.increment_package_download_count(package_name)
@@ -748,7 +743,7 @@ class ClientHandlerFiber(Fiber):
 
     def save_post_data_to_file(self,
                                max_size: u64,
-                               headers: {string: string}) -> string:
+                               headers: {string: string}) -> Path:
         data = self.read_post_content(max_size, headers)
 
         if data is None:
@@ -756,7 +751,7 @@ class ClientHandlerFiber(Fiber):
 
         self.create_root_directory()
         fiber_path = self.make_path("archive.tar.gz")
-        BinaryFile(fiber_path, "w").write(data)
+        fiber_path.write_binary(data)
 
         return fiber_path
 
@@ -786,11 +781,11 @@ class ClientHandlerFiber(Fiber):
         if fiber_path is None:
             return
 
-        tar(fiber_path,
+        tar(str(fiber_path),
             extract=True,
             strip_components=1,
-            output_directory=self.root_directory)
-        package_toml = TextFile(self.make_path("package.toml")).read()
+            output_directory=str(self.root_directory))
+        package_toml = self.make_path("package.toml").read_text()
         config = toml_decode(package_toml)
         package_name = config.get("package").get("name").get_string()
         version = config.get("package").get("version").get_string()
@@ -832,8 +827,8 @@ class ClientHandlerFiber(Fiber):
             raise
 
         database_path = self.database.make_path(path[1:])
-        rm(database_path, force=True)
-        mv(fiber_path, database_path)
+        database_path.rm(force=True)
+        mv(str(fiber_path), str(database_path))
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
@@ -846,17 +841,17 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_tar_gz_post(self, request: Request, database_path: string):
+    def handle_mys_tar_gz_post(self, request: Request, database_path: Path):
         fiber_path = self.save_post_data_to_file(50_000_000, request.headers)
 
         if fiber_path is None:
             return
 
         version = request.path[5:-7]
-        rm(self.database.make_path(version), recursive=True, force=True)
-        tar(fiber_path,
+        self.database.make_path(version).rm(recursive=True, force=True)
+        tar(str(fiber_path),
             extract=True,
-            output_directory=self.database.root_directory)
+            output_directory=str(self.database.root_directory))
 
         self.database.begin_transaction()
         response_data = ""
@@ -890,11 +885,11 @@ class ClientHandlerFiber(Fiber):
     def handle_static_file(self, request: Request):
         match request.method:
             case "GET":
-                path = f"{__assets__}{request.path}"
+                path = Path(f"{__assets__}{request.path}")
 
-                if exists(path) and ".." not in path:
+                if path.exists() and ".." not in str(path):
                     self.write_static_response_ok(path)
-                    self.client.write(BinaryFile(path).read())
+                    self.client.write(path.read_binary())
                 else:
                     self.write_response(Status.NotFound)
             case _:
@@ -917,8 +912,8 @@ class ClientHandlerFiber(Fiber):
             self.client.write(f"Content-Length: {len(data)}\r\n\r\n".to_utf8())
             self.client.write(data)
 
-    def write_static_response_ok(self, path: string):
-        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(extension(path), "text/plain")
+    def write_static_response_ok(self, path: Path):
+        content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.extension(), "text/plain")
 
         if content_type == "text/html":
             self.write_response_type(Status.Ok, content_type)

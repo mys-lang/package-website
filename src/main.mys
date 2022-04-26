@@ -1,6 +1,7 @@
 from argparse import Parser
 from argparse import ValueType
 from fiber import Event
+from os.path import Path
 from net.tcp.server import Server
 from .database import Database
 from .statistics import Statistics
@@ -23,7 +24,7 @@ def main(argv: [string]):
                       help="ipinfo.io token.")
     args = parser.parse(argv)
 
-    database = Database(args.value_of("--database-directory"))
+    database = Database(Path(args.value_of("--database-directory")))
     statistics = Statistics(args.value_of("--ipinfo-token"))
 
     client_handlers: [ClientHandlerFiber] = []
