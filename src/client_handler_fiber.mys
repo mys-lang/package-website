@@ -667,7 +667,7 @@ class ClientHandlerFiber(Fiber):
             try:
                 run(f"mys -C {self.root_directory} doc")
                 database_doc_path.rm()
-                mv(f"{self.root_directory}/build/doc/html", str(database_doc_path))
+                mv(Path(f"{self.root_directory}/build/doc/html"), database_doc_path)
             except OsError:
                 data = b"<html>Package documentation build failed!</html>"
                 (database_doc_path / "index.html").write_binary(data)
@@ -781,10 +781,10 @@ class ClientHandlerFiber(Fiber):
         if fiber_path is None:
             return
 
-        tar(str(fiber_path),
+        tar(fiber_path,
             extract=True,
             strip_components=1,
-            output_directory=str(self.root_directory))
+            output_directory=self.root_directory)
         package_toml = self.make_path("package.toml").read_text()
         config = toml_decode(package_toml)
         package_name = config.get("package").get("name").get_string()
@@ -828,7 +828,7 @@ class ClientHandlerFiber(Fiber):
 
         database_path = self.database.make_path(path[1:])
         database_path.rm(force=True)
-        mv(str(fiber_path), str(database_path))
+        mv(fiber_path, database_path)
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
@@ -849,9 +849,9 @@ class ClientHandlerFiber(Fiber):
 
         version = request.path[5:-7]
         self.database.make_path(version).rm(recursive=True, force=True)
-        tar(str(fiber_path),
+        tar(fiber_path,
             extract=True,
-            output_directory=str(self.database.root_directory))
+            output_directory=self.database.root_directory)
 
         self.database.begin_transaction()
         response_data = ""
