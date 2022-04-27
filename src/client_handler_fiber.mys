@@ -663,7 +663,7 @@ class ClientHandlerFiber(Fiber):
         database_doc_path.rm(recursive=True, force=True)
         database_doc_path.mkdir(exists_ok=True)
 
-        if Path(f"{self.root_directory}/doc").exists():
+        if self.root_directory.join("doc").exists():
             try:
                 run(f"mys -C {self.root_directory} doc")
                 database_doc_path.rm()
