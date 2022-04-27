@@ -142,7 +142,7 @@ class Database:
 
         """
 
-        return self.root_directory / path
+        return self.root_directory.join(path)
 
     def create_package(self, name: string, token: string):
         self._create_package.bind_string(1, name)

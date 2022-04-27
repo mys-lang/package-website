@@ -211,7 +211,7 @@ class ClientHandlerFiber(Fiber):
 
         """
 
-        return self.root_directory / path
+        return self.root_directory.join(path)
 
     def read_header(self):
         offset: u64 = 0
@@ -670,10 +670,10 @@ class ClientHandlerFiber(Fiber):
                 mv(Path(f"{self.root_directory}/build/doc/html"), database_doc_path)
             except OsError:
                 data = b"<html>Package documentation build failed!</html>"
-                (database_doc_path / "index.html").write_binary(data)
+                database_doc_path.join("index.html").write_binary(data)
         else:
             data = b"<html>No package documentation found!</html>"
-            (database_doc_path / "index.html").write_binary(data)
+            database_doc_path.join("index.html").write_binary(data)
 
     def handle_package_tar_gz(self, request: Request, package_name: string):
         match request.method:
