@@ -348,6 +348,17 @@ class StatisticsTest(TestCase):
         self.assert_in('Start date and time', response.text)
         self.assert_in('Traffic', response.text)
         self.assert_in('<td>/standard-library/foo/build-log.html</td>', response.text)
+        self.assert_in('svg', response.text)
+        response = self.http_get("/_images/world.svg")
+        self.assert_equal(response.status_code, 200)
+
+
+class ResponseContentTypeJsTest(TestCase):
+
+    def run(self):
+        response = self.http_get('/searchindex.js')
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.headers['content-type'], 'application/javascript')
 
 
 def main():
@@ -369,7 +380,8 @@ def main():
         PackageTest(),
         UpdateBuildResultsTest(),
         PackageNoDocTest(),
-        StatisticsTest()
+        StatisticsTest(),
+        ResponseContentTypeJsTest()
     )
 
     website.close()
