@@ -344,7 +344,7 @@ class ClientHandlerFiber(Fiber):
     def handle_mys_version_standard_library(self, request: Request):
         match request.method:
             case "GET":
-                path = self.database.make_path(request.path[1:])
+                path = self.database.make_path(request.path)
 
                 if path.exists():
                     self.write_static_response_ok(path)
@@ -417,7 +417,7 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.BadRequest)
                     return
 
-                path = self.database.make_path(request.path[1:])
+                path = self.database.make_path(request.path)
 
                 if path.exists():
                     self.write_static_response_ok(path)
@@ -439,7 +439,7 @@ class ClientHandlerFiber(Fiber):
     def handle_mys_version_statistics(self, request: Request):
         match request.method:
             case "GET":
-                path = self.database.make_path(request.path[1:])
+                path = self.database.make_path(request.path)
 
                 if path.exists():
                     requests, total_number_of_requests = create_request_table(
@@ -533,7 +533,7 @@ class ClientHandlerFiber(Fiber):
     def handle_standard_library_build_log(self,
                                           request: Request,
                                           package_name: string):
-        path = self.database.make_path(request.path[1:])
+        path = self.database.make_path(request.path)
 
         match request.method:
             case "GET":
@@ -561,7 +561,7 @@ class ClientHandlerFiber(Fiber):
     def handle_mys_version_world_svg(self, request: Request):
         match request.method:
             case "GET":
-                path = self.database.make_path(request.path[1:])
+                path = self.database.make_path(request.path)
 
                 if path.exists():
                     locations = StringBuilder()
@@ -645,7 +645,7 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.BadRequest)
                     return
 
-                path = self.database.make_path(request.path[1:])
+                path = self.database.make_path(request.path)
 
                 if path.exists():
                     self.write_static_response_ok(path)
@@ -704,7 +704,7 @@ class ClientHandlerFiber(Fiber):
                 self.write_response(Status.MethodNotAllowed)
 
     def handle_package_tar_gz_get(self, package_name: string, path: string):
-        database_path = self.database.make_path(path[1:])
+        database_path = self.database.make_path(path)
 
         if database_path.exists():
             data = database_path.read_binary()
@@ -826,14 +826,14 @@ class ClientHandlerFiber(Fiber):
             self.database.rollback_transaction()
             raise
 
-        database_path = self.database.make_path(path[1:])
+        database_path = self.database.make_path(path)
         database_path.rm(force=True)
         mv(fiber_path, database_path)
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
     def handle_mys_tar_gz(self, request: Request):
-        database_path = self.database.make_path(request.path[1:])
+        database_path = self.database.make_path(request.path)
 
         match request.method:
             case "POST":
