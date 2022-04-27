@@ -1,6 +1,5 @@
 from net.tcp.server import Client
 from os import tar
-from os import mv
 from os import OsError
 from os.path import Path
 from os.subprocess import run
@@ -667,7 +666,7 @@ class ClientHandlerFiber(Fiber):
             try:
                 run(f"mys -C {self.root_directory} doc")
                 database_doc_path.rm()
-                mv(Path(f"{self.root_directory}/build/doc/html"), database_doc_path)
+                self.root_directory.join("build/doc/html").mv(database_doc_path)
             except OsError:
                 data = b"<html>Package documentation build failed!</html>"
                 database_doc_path.join("index.html").write_binary(data)
@@ -828,7 +827,7 @@ class ClientHandlerFiber(Fiber):
 
         database_path = self.database.make_path(path)
         database_path.rm(force=True)
-        mv(fiber_path, database_path)
+        fiber_path.mv(database_path)
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
@@ -885,7 +884,7 @@ class ClientHandlerFiber(Fiber):
     def handle_static_file(self, request: Request):
         match request.method:
             case "GET":
-                path = Path(f"{__assets__}{request.path}")
+                path = Path(__assets__).join(request.path)
 
                 if path.exists() and ".." not in str(path):
                     self.write_static_response_ok(path)
