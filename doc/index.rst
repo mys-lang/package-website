@@ -116,7 +116,7 @@ Systemd service
    Restart=always
    RestartSec=1
    User=mys
-   ExecStart=/home/mys/package-website/build/speed/app -d /home/mys/database [-i <ipinfo-token>]
+   ExecStart=/home/mys/.local/bin/website -d /home/mys/database [-i <ipinfo-token>]
    WorkingDirectory=/home/mys
 
    [Install]

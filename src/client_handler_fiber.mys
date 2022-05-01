@@ -302,7 +302,6 @@ class ClientHandlerFiber(Fiber):
             self.handle_mys_world_svg(request)
             return
 
-
         mo = path.match(RE_STANDARD_LIBRARY_BUILD_RESULT)
 
         if mo is not None:
