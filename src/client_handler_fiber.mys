@@ -551,6 +551,10 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.NotFound)
                 else:
                     dependents = self.database.get_dependents(package_name)
+
+                    if len(dependents) > 0:
+                        dependents.append("")
+
                     self.write_response(Status.Ok, data="\n".join(dependents).to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)

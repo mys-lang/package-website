@@ -374,10 +374,10 @@ class PackageDependentsTest(TestCase):
         self.assert_equal(response.text, "")
         response = self.http_get("/standard-library/deps_b/dependents.txt")
         self.assert_equal(response.status_code, 200)
-        self.assert_equal(response.text, "deps_a")
+        self.assert_equal(response.text, "deps_a\n")
         response = self.http_get("/standard-library/deps_c/dependents.txt")
         self.assert_equal(response.status_code, 200)
-        self.assert_equal(response.text, "deps_a")
+        self.assert_equal(response.text, "deps_a\n")
         response = self.http_get("/standard-library/deps_d/dependents.txt")
         self.assert_equal(response.status_code, 404)
 
