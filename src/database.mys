@@ -83,7 +83,7 @@ class Database:
                                "UNIQUE(package_id, version)"
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS dependents("
-                               "name TEXT PRIMARY KEY,"
+                               "name TEXT NOT NULL,"
                                "user TEXT NOT NULL,"
                                "UNIQUE(name, user)"
                                ")")
