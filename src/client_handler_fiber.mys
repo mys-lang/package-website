@@ -295,6 +295,10 @@ class ClientHandlerFiber(Fiber):
             self.handle_standard_library_dependents(request, mo.group(1))
             return
 
+        if path == "/standard-library/list.txt":
+            self.handle_standard_library_list(request)
+            return
+
         self.handle_mys(request)
 
     def serve(self):
@@ -556,6 +560,14 @@ class ClientHandlerFiber(Fiber):
                         dependents.append("")
 
                     self.write_response(Status.Ok, data="\n".join(dependents).to_utf8())
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    def handle_standard_library_list(self, request: Request):
+        match request.method:
+            case "GET":
+                packages = self.database.get_packages()
+                self.write_response(Status.Ok, data="\n".join(packages).to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)
 

@@ -65,6 +65,9 @@ class TestCase(systest.TestCase):
     def http_delete(self, path, params=None):
         return requests.delete(f"{BASE_URL}{path}", params=params)
 
+    def subprocess_run(self, command):
+        return subprocess.run(command, check=True, capture_output=True, text=True)
+
 
 class FreshDatabaseTest(TestCase):
     """Test with a fresh database.
@@ -150,7 +153,7 @@ class PackageTest(TestCase):
 
     def run(self):
         shutil.rmtree("foo", ignore_errors=True)
-        subprocess.run(["mys", "new", "foo"], check=True)
+        self.subprocess_run(["mys", "new", "foo"])
 
         package_list_item = '<a href="/package/foo/latest/index.html">foo</a>'
 
@@ -170,10 +173,7 @@ class PackageTest(TestCase):
         self.assert_equal(response.status_code, 404)
 
         # Upload.
-        proc = subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL],
-                              check=True,
-                              capture_output=True,
-                              text=True)
+        proc = self.subprocess_run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
         token = proc.stdout.rstrip()[-64:]
 
         # Download specific version and latest.
@@ -203,21 +203,18 @@ class PackageTest(TestCase):
 
         # Upload the package again without a token.
         with self.assert_raises(subprocess.CalledProcessError):
-            subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL],
-                           check=True)
+            self.subprocess_run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
 
         # Upload the package again with wrong token.
         with self.assert_raises(subprocess.CalledProcessError):
-            subprocess.run(["mys", "-C", "foo", "publish",
-                            "-a", BASE_URL,
-                            "-t", 64 * "0"],
-                           check=True)
+            self.subprocess_run(["mys", "-C", "foo", "publish",
+                                 "-a", BASE_URL,
+                                 "-t", 64 * "0"])
 
         # Upload the package again with correct token.
-        subprocess.run(["mys", "-C", "foo", "publish",
-                        "-a", BASE_URL,
-                        "-t", token],
-                       check=True)
+        self.subprocess_run(["mys", "-C", "foo", "publish",
+                             "-a", BASE_URL,
+                             "-t", token])
 
         # Try to delete the package with wrong token.
         response = self.http_delete(f'/package/foo', params={'token': 64 * '0'})
@@ -245,10 +242,7 @@ class PackageTest(TestCase):
         self.assert_equal(response.status_code, 404)
 
         # Upload again.
-        proc = subprocess.run(["mys", "-C", "foo", "publish", "-a", BASE_URL],
-                              check=True,
-                              capture_output=True,
-                              text=True)
+        proc = self.subprocess_run(["mys", "-C", "foo", "publish", "-a", BASE_URL])
         assert proc.stdout.rstrip()[-64:] != token
 
         # Download it.
@@ -305,12 +299,11 @@ class UpdateBuildResultsTest(TestCase):
 
     def run(self):
         shutil.rmtree('stdall', ignore_errors=True)
-        command = [
+        self.subprocess_run([
             sys.executable,
             '../scripts/update_standard_library_build_results.py',
             '--url', BASE_URL
-        ]
-        subprocess.run(command, check=True)
+        ])
 
         response = self.http_get("/standard-library/foo/build-log.html")
         self.assert_equal(response.status_code, 200)
@@ -346,15 +339,15 @@ class PackageDependentsTest(TestCase):
 
     def publish_new_package(self, name):
         shutil.rmtree(name, ignore_errors=True)
-        subprocess.run(["mys", "new", name], check=True)
-        subprocess.run(["mys", "-C", name, "publish", "-a", BASE_URL], check=True)
+        self.subprocess_run(["mys", "new", name])
+        self.subprocess_run(["mys", "-C", name, "publish", "-a", BASE_URL])
 
     def run(self):
         self.publish_new_package("deps_b")
         self.publish_new_package("deps_c")
 
         shutil.rmtree("deps_a", ignore_errors=True)
-        subprocess.run(["mys", "new", "deps_a"], check=True)
+        self.subprocess_run(["mys", "new", "deps_a"])
 
         with open("deps_a/package.toml") as fin:
             config = fin.read()
@@ -366,8 +359,7 @@ class PackageDependentsTest(TestCase):
         with open("deps_a/package.toml", 'w') as fout:
             fout.write(config)
 
-        subprocess.run(["mys", "-C", "deps_a", "publish", "-a", BASE_URL],
-                       check=True)
+        self.subprocess_run(["mys", "-C", "deps_a", "publish", "-a", BASE_URL])
 
         response = self.http_get("/standard-library/deps_a/dependents.txt")
         self.assert_equal(response.status_code, 200)
@@ -380,6 +372,26 @@ class PackageDependentsTest(TestCase):
         self.assert_equal(response.text, "deps_a\n")
         response = self.http_get("/standard-library/deps_d/dependents.txt")
         self.assert_equal(response.status_code, 404)
+
+
+class PackageListTest(TestCase):
+    """List packages.
+
+    """
+
+    def publish_new_package(self, name):
+        shutil.rmtree(name, ignore_errors=True)
+        self.subprocess_run(["mys", "new", name])
+        self.subprocess_run(["mys", "-C", name, "publish", "-a", BASE_URL])
+
+    def run(self):
+        self.publish_new_package("list_a")
+        self.publish_new_package("list_b")
+
+        response = self.http_get("/standard-library/list.txt")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in('list_a', response.text)
+        self.assert_in('list_b', response.text)
 
 
 class StatisticsTest(TestCase):
@@ -425,7 +437,8 @@ def main():
         PackageNoDocTest(),
         StatisticsTest(),
         ResponseContentTypeJsTest(),
-        PackageDependentsTest()
+        PackageDependentsTest(),
+        PackageListTest()
     )
 
     website.close()
