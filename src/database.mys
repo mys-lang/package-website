@@ -45,6 +45,9 @@ class Database:
     _get_package_release_by_id: Statement
     _get_package_releases: Statement
     _add_package_release: Statement
+    _get_dependents: Statement
+    _remove_dependents: Statement
+    _add_dependent: Statement
     root_directory: Path
     _lock: Lock
 
@@ -78,6 +81,11 @@ class Database:
                                "version TEXT NOT NULL,"
                                "description TEXT NOT NULL,"
                                "UNIQUE(package_id, version)"
+                               ")")
+        self._database.execute("CREATE TABLE IF NOT EXISTS dependents("
+                               "name TEXT PRIMARY KEY,"
+                               "user TEXT NOT NULL,"
+                               "UNIQUE(name, user)"
                                ")")
 
         statement = self._database.prepare("SELECT COUNT(*) FROM packages")
@@ -121,6 +129,12 @@ class Database:
         self._add_package_release = self._database.prepare(
             "INSERT OR IGNORE INTO releases (package_id, version, description) "
             "VALUES(?, ?, ?)")
+        self._get_dependents = self._database.prepare(
+            "SELECT (user) FROM dependents WHERE name == ?")
+        self._remove_dependents = self._database.prepare(
+            "DELETE FROM dependents WHERE user == ?")
+        self._add_dependent = self._database.prepare(
+            "INSERT INTO dependents (name, user) VALUES (?, ?)")
 
         self.make_path("package").mkdir(exists_ok=True)
 
@@ -277,3 +291,21 @@ class Database:
         self._get_mys_release.fetch()
 
         return release
+
+    def remove_dependents(self, user: string):
+        self._remove_dependents.bind_string(1, user)
+        self._remove_dependents.execute()
+
+    def add_dependent(self, package_name: string, user: string):
+        self._add_dependent.bind_string(1, package_name)
+        self._add_dependent.bind_string(2, user)
+        self._add_dependent.execute()
+
+    def get_dependents(self, package_name: string) -> [string]:
+        self._get_dependents.bind_string(1, package_name)
+        dependents = []
+
+        while self._get_dependents.fetch():
+            dependents.append(self._get_dependents.column_string(0))
+
+        return dependents

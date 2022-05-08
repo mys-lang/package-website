@@ -339,6 +339,49 @@ class PackageNoDocTest(TestCase):
         self.assert_in('No package documentation found!', response.text)
 
 
+class PackageDependentsTest(TestCase):
+    """Package dependents.
+
+    """
+
+    def publish_new_package(self, name):
+        shutil.rmtree(name, ignore_errors=True)
+        subprocess.run(["mys", "new", name], check=True)
+        subprocess.run(["mys", "-C", name, "publish", "-a", BASE_URL], check=True)
+
+    def run(self):
+        self.publish_new_package("deps_b")
+        self.publish_new_package("deps_c")
+
+        shutil.rmtree("deps_a", ignore_errors=True)
+        subprocess.run(["mys", "new", "deps_a"], check=True)
+
+        with open("deps_a/package.toml") as fin:
+            config = fin.read()
+
+        config += '\n'
+        config += 'deps_b = "latest"\n'
+        config += 'deps_c = "latest"\n'
+
+        with open("deps_a/package.toml", 'w') as fout:
+            fout.write(config)
+
+        subprocess.run(["mys", "-C", "deps_a", "publish", "-a", BASE_URL],
+                       check=True)
+
+        response = self.http_get("/standard-library/deps_a/dependents.txt")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.text, "")
+        response = self.http_get("/standard-library/deps_b/dependents.txt")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.text, "deps_a")
+        response = self.http_get("/standard-library/deps_c/dependents.txt")
+        self.assert_equal(response.status_code, 200)
+        self.assert_equal(response.text, "deps_a")
+        response = self.http_get("/standard-library/deps_d/dependents.txt")
+        self.assert_equal(response.status_code, 404)
+
+
 class StatisticsTest(TestCase):
 
     def run(self):
@@ -381,7 +424,8 @@ def main():
         UpdateBuildResultsTest(),
         PackageNoDocTest(),
         StatisticsTest(),
-        ResponseContentTypeJsTest()
+        ResponseContentTypeJsTest(),
+        PackageDependentsTest()
     )
 
     website.close()

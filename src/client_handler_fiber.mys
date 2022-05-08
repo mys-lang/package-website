@@ -31,6 +31,7 @@ RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
 RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
 RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.html$"
 RE_STANDARD_LIBRARY_BUILD_RESULT: regex = re"^/standard-library/([\w-]+)/build-result.txt$"
+RE_STANDARD_LIBRARY_DEPENDENTS: regex = re"^/standard-library/([\w-]+)/dependents.txt$"
 
 FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     ".html": "text/html",
@@ -180,7 +181,7 @@ class ClientHandlerFiber(Fiber):
 
     def serve_client(self, client: Client):
         self.client = client
-        self._buffered_reader = BufferedReader(client)
+        self._buffered_reader = BufferedReader(client, 1024)
         self.event.set()
 
     def run(self):
@@ -286,6 +287,12 @@ class ClientHandlerFiber(Fiber):
 
         if mo is not None:
             self.handle_standard_library_build_log(request, mo.group(1))
+            return
+
+        mo = path.match(RE_STANDARD_LIBRARY_DEPENDENTS)
+
+        if mo is not None:
+            self.handle_standard_library_dependents(request, mo.group(1))
             return
 
         self.handle_mys(request)
@@ -530,6 +537,21 @@ class ClientHandlerFiber(Fiber):
                 log_path.mkdir(exists_ok=True)
                 path.write_binary(content)
                 self.write_response(Status.Ok)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    def handle_standard_library_dependents(self,
+                                           request: Request,
+                                           package_name: string):
+        match request.method:
+            case "GET":
+                package = self.database.get_package(package_name)
+
+                if package is None:
+                    self.write_response(Status.NotFound)
+                else:
+                    dependents = self.database.get_dependents(package_name)
+                    self.write_response(Status.Ok, data="\n".join(dependents).to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
@@ -795,6 +817,14 @@ class ClientHandlerFiber(Fiber):
                 self.database.modify_package(package, release)
             elif Version(version) > Version(package.latest_release.version):
                 self.database.modify_package(package, release)
+
+            self.database.remove_dependents(package_name)
+
+            try:
+                for dependency in config.get("dependencies").get_table().keys():
+                    self.database.add_dependent(dependency, package_name)
+            except KeyError:
+                pass
 
             self.database.commit_transaction()
         except:
