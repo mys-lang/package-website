@@ -1,6 +1,6 @@
 from random.crypto import randbytes
 
-def create_token() -> string:
+func create_token() -> string:
     return randbytes(32).to_hex()
 
 @enum

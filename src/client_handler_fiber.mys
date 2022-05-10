@@ -54,7 +54,7 @@ STATUS_STRINGS: {i64: string} = {
     i64(Status.MethodNotAllowed): "Method Not Allowed"
 }
 
-def builds_to_emoji(result: string) -> string:
+func builds_to_emoji(result: string) -> string:
     match result:
         case "yes":
             return "✅"
@@ -63,7 +63,7 @@ def builds_to_emoji(result: string) -> string:
         case _:
             return "🤔"
 
-def create_request_table(name: string, requests: {string: i64}) -> (string, i64):
+func create_request_table(name: string, requests: {string: i64}) -> (string, i64):
     total_number_of_requests = 0
     row_index = 0
     builder = StringBuilder()
@@ -157,7 +157,7 @@ class ClientHandlerFiber(Fiber):
     response_status: Status
     _buffered_reader: BufferedReader
 
-    def __init__(self,
+    func __init__(self,
                  database: Database,
                  statistics: Statistics,
                  idle_client_handlers: [i64],
@@ -175,16 +175,16 @@ class ClientHandlerFiber(Fiber):
         self.response_status = Status.Unknown
         self._buffered_reader = None
 
-    def create_root_directory(self):
+    func create_root_directory(self):
         self.root_directory.rm(recursive=True, force=True)
         self.root_directory.mkdir(exists_ok=True)
 
-    def serve_client(self, client: Client):
+    func serve_client(self, client: Client):
         self.client = client
         self._buffered_reader = BufferedReader(client, 1024)
         self.event.set()
 
-    def run(self):
+    func run(self):
         while True:
             self.event.wait()
             self.event.clear()
@@ -198,7 +198,7 @@ class ClientHandlerFiber(Fiber):
             self.idle_client_handlers.append(self.index)
             self.idle_client_handlers_ready.set()
 
-    def make_path(self, path: string) -> Path:
+    func make_path(self, path: string) -> Path:
         """Prepend the database root directory path to given path. Given path
         must not start with a slash.
 
@@ -206,10 +206,10 @@ class ClientHandlerFiber(Fiber):
 
         return self.root_directory.join(path)
 
-    def read_header(self) -> bytes:
+    func read_header(self) -> bytes:
         return self._buffered_reader.read_until(HEADERS_END)
 
-    def handle_request(self, request: Request):
+    func handle_request(self, request: Request):
         self.response_status = Status.Unknown
 
         if request.path == "/":
@@ -301,7 +301,7 @@ class ClientHandlerFiber(Fiber):
 
         self.handle_mys(request)
 
-    def serve(self):
+    func serve(self):
         header = self.read_header()
 
         if header is None:
@@ -323,7 +323,7 @@ class ClientHandlerFiber(Fiber):
             request.path = path
             self.statistics.handle_request(request, self.response_status)
 
-    def handle_mys_version_standard_library(self, request: Request):
+    func handle_mys_version_standard_library(self, request: Request):
         match request.method:
             case "GET":
                 path = self.database.make_path(request.path)
@@ -392,7 +392,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_version(self, request: Request):
+    func handle_mys_version(self, request: Request):
         match request.method:
             case "GET":
                 if ".." in request.path:
@@ -409,7 +409,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_standard_library(self, request: Request):
+    func handle_mys_standard_library(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
@@ -418,7 +418,7 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_mys_version_statistics(self, request: Request):
+    func handle_mys_version_statistics(self, request: Request):
         match request.method:
             case "GET":
                 path = self.database.make_path(request.path)
@@ -474,7 +474,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_statistics(self, request: Request):
+    func handle_mys_statistics(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
@@ -483,7 +483,7 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_mys_world_svg(self, request: Request):
+    func handle_mys_world_svg(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
@@ -492,7 +492,7 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_standard_library_build_result(self,
+    func handle_standard_library_build_result(self,
                                              request: Request,
                                              package_name: string):
         match request.method:
@@ -512,7 +512,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_standard_library_build_log(self,
+    func handle_standard_library_build_log(self,
                                           request: Request,
                                           package_name: string):
         path = self.database.make_path(request.path)
@@ -544,7 +544,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_standard_library_dependents(self,
+    func handle_standard_library_dependents(self,
                                            request: Request,
                                            package_name: string):
         match request.method:
@@ -563,7 +563,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_standard_library_list(self, request: Request):
+    func handle_standard_library_list(self, request: Request):
         match request.method:
             case "GET":
                 packages = self.database.get_packages()
@@ -571,7 +571,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_version_world_svg(self, request: Request):
+    func handle_mys_version_world_svg(self, request: Request):
         match request.method:
             case "GET":
                 path = self.database.make_path(request.path)
@@ -604,7 +604,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys(self, request: Request):
+    func handle_mys(self, request: Request):
         mys = self.database.get_mys()
 
         if mys is not None:
@@ -613,7 +613,7 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_package_operations(self, request: Request):
+    func handle_package_operations(self, request: Request):
         match request.method:
             case "DELETE":
                 package_name = request.path[9:]
@@ -640,7 +640,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_latest(self, request: Request):
+    func handle_package_latest(self, request: Request):
         parts = request.path.split('/')
         package_name = parts[2]
         package = self.database.get_package(package_name)
@@ -651,7 +651,7 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def handle_package(self, request: Request):
+    func handle_package(self, request: Request):
         match request.method:
             case "GET":
                 if ".." in request.path:
@@ -668,7 +668,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def generate_package_documentation(self,
+    func generate_package_documentation(self,
                                        package_name: string,
                                        version: string):
         database_doc_path = self.database.make_path(
@@ -688,7 +688,7 @@ class ClientHandlerFiber(Fiber):
             data = b"<html>No package documentation found!</html>"
             database_doc_path.join("index.html").write_binary(data)
 
-    def handle_package_tar_gz(self, request: Request, package_name: string):
+    func handle_package_tar_gz(self, request: Request, package_name: string):
         match request.method:
             case "GET":
                 self.handle_package_tar_gz_get(package_name, request.path)
@@ -699,7 +699,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_latest_tar_gz(self,
+    func handle_package_latest_tar_gz(self,
                                      request: Request,
                                      package_name: string):
         match request.method:
@@ -716,7 +716,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_package_tar_gz_get(self, package_name: string, path: string):
+    func handle_package_tar_gz_get(self, package_name: string, path: string):
         database_path = self.database.make_path(path)
 
         if database_path.exists():
@@ -727,7 +727,7 @@ class ClientHandlerFiber(Fiber):
         else:
             self.write_response(Status.NotFound)
 
-    def read_post_content(self,
+    func read_post_content(self,
                           max_size: u64,
                           headers: {string: string}) -> bytes:
         content_length = u64(headers["content-length"])
@@ -754,7 +754,7 @@ class ClientHandlerFiber(Fiber):
 
         return data
 
-    def save_post_data_to_file(self,
+    func save_post_data_to_file(self,
                                max_size: u64,
                                headers: {string: string}) -> Path:
         content = self.read_post_content(max_size, headers)
@@ -768,7 +768,7 @@ class ClientHandlerFiber(Fiber):
 
         return fiber_path
 
-    def validate_token(self,
+    func validate_token(self,
                        params: {string: string},
                        expected_token: string) -> bool:
         token = params.get("token", None)
@@ -785,7 +785,7 @@ class ClientHandlerFiber(Fiber):
 
         return True
 
-    def handle_package_tar_gz_post(self,
+    func handle_package_tar_gz_post(self,
                                    path: string,
                                    params: {string: string},
                                    headers: {string: string}):
@@ -853,7 +853,7 @@ class ClientHandlerFiber(Fiber):
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
-    def handle_mys_tar_gz(self, request: Request):
+    func handle_mys_tar_gz(self, request: Request):
         database_path = self.database.make_path(request.path)
 
         match request.method:
@@ -862,7 +862,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def handle_mys_tar_gz_post(self, request: Request, database_path: Path):
+    func handle_mys_tar_gz_post(self, request: Request, database_path: Path):
         fiber_path = self.save_post_data_to_file(50_000_000, request.headers)
 
         if fiber_path is None:
@@ -903,7 +903,7 @@ class ClientHandlerFiber(Fiber):
 
         self.write_response(Status.Ok, data=response_data.to_utf8())
 
-    def handle_static_file(self, request: Request):
+    func handle_static_file(self, request: Request):
         match request.method:
             case "GET":
                 path = Path(__assets__).join(request.path)
@@ -916,7 +916,7 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    def write_response(self,
+    func write_response(self,
                        status: Status,
                        headers: {string: string} = {},
                        data: bytes = None):
@@ -933,7 +933,7 @@ class ClientHandlerFiber(Fiber):
             self.client.write(f"Content-Length: {len(data)}\r\n\r\n".to_utf8())
             self.client.write(data)
 
-    def write_static_response_ok(self, path: Path):
+    func write_static_response_ok(self, path: Path):
         content_type = FILE_SUFFIX_TO_CONTENT_TYPE.get(path.extension(), "text/plain")
 
         if content_type == "text/html":
@@ -945,6 +945,6 @@ class ClientHandlerFiber(Fiber):
                                     "Content-Type": content_type
                                 })
 
-    def write_response_type(self, status: Status, content_type: string):
+    func write_response_type(self, status: Status, content_type: string):
         self.write_response(status,
                             headers={"Content-Type": content_type})

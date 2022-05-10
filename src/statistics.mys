@@ -22,7 +22,7 @@ class _ClientIpLookupFiber(Fiber):
     locations: {string: Location}
     _locations_order: Fifo[string]
 
-    def __init__(self, token: string, locations: {string: Location}):
+    func __init__(self, token: string, locations: {string: Location}):
         self.token = token
         # i64 instead of Status as generics does only work with common
         # types.
@@ -30,7 +30,7 @@ class _ClientIpLookupFiber(Fiber):
         self.locations = locations
         self._locations_order = Fifo[string](100)
 
-    def run(self):
+    func run(self):
         while True:
             client_ip_address, response_status = self.queue.get()
 
@@ -71,11 +71,11 @@ class OrderedCounter:
     order: Fifo[string]
     count: {string: i64}
 
-    def __init__(self):
+    func __init__(self):
         self.order = Fifo[string](100)
         self.count = {}
 
-    def increment(self, name: string):
+    func increment(self, name: string):
         if name in self.count:
             self.count[name] += 1
         else:
@@ -93,7 +93,7 @@ class Statistics:
     client_ip_lookup_fiber: _ClientIpLookupFiber
     referrers: OrderedCounter
 
-    def __init__(self, ipinfo_token: string):
+    func __init__(self, ipinfo_token: string):
         self.start_date_time = LocalDateTime()
         self.requests = OrderedCounter()
         self.locations = {}
@@ -103,7 +103,7 @@ class Statistics:
                                                            self.locations)
         self.client_ip_lookup_fiber.start()
 
-    def handle_request(self, request: Request, response_status: Status):
+    func handle_request(self, request: Request, response_status: Status):
         if request.method != "GET":
             return
 
@@ -133,7 +133,7 @@ class Statistics:
             self.client_ip_lookup_fiber.queue.put((client_ip_address,
                                                    i64(response_status)))
 
-    def unique_clients(self) -> string:
+    func unique_clients(self) -> string:
         count = len(self.clients_ip_addresses)
 
         if count < 100:
@@ -142,7 +142,7 @@ class Statistics:
             return f"{count} (capped)"
 
 @test
-def test_bot_user_agent():
+func test_bot_user_agent():
     statistics = Statistics(None)
 
     statistics.handle_request(

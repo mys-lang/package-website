@@ -7,7 +7,7 @@ from .database import Database
 from .statistics import Statistics
 from .client_handler_fiber import ClientHandlerFiber
 
-def main(argv: [string]):
+func main(argv: [string]):
     parser = Parser(version=__version__)
     parser.add_option("--port",
                       short="-p",
