@@ -3,5 +3,10 @@ build
 .coverage
 .mys-coverage.txt
 coverage/
-test/storage
 .website
+test/storage
+test/Mys_website.*
+test/deps_*
+test/foo/
+test/list_*
+test/logs/
