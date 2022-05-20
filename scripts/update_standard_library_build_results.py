@@ -65,45 +65,57 @@ def create_log_header(package_root):
     return '\n'.join(header) + '\n\n'
 
 
-def build_package(package, url, jobs):
-    with tempfile.TemporaryDirectory() as tempdir:
-        original_dir = os.getcwd()
-        os.chdir(tempdir)
+def build_and_test_package(package, url, jobs):
+    response = requests.get(f'{url}/package/{package}-latest.tar.gz')
+    response.raise_for_status()
 
-        try:
-            response = requests.get(f'{url}/package/{package}-latest.tar.gz')
-            response.raise_for_status()
+    with open('package-latest.tar.gz', 'wb') as fout:
+        fout.write(response.content)
 
-            with open('package-latest.tar.gz', 'wb') as fout:
-                fout.write(response.content)
+    with tarfile.open('package-latest.tar.gz') as fin:
+        fin.extractall('package')
 
-            with tarfile.open('package-latest.tar.gz') as fin:
-                fin.extractall('package')
+    print(f'========================= {package} =========================')
+    package_root = glob.glob('package/*')[0]
+    build_command = ['mys', '-C', package_root, 'build', '--url', url]
 
-            print(f'========================= {package} =========================')
-            package_root = glob.glob('package/*')[0]
-            command = ['mys', '-C', package_root, 'build', '--url', url]
+    if jobs is not None:
+        build_command += ['-j', jobs]
 
-            if jobs is not None:
-                command += ['-j', jobs]
+    build_proc = subprocess.run(build_command,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
 
-            proc = subprocess.run(command,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT)
+    if build_proc.returncode == 0:
+        result = 'yes'
+    else:
+        result = 'no'
 
-            if proc.returncode == 0:
-                result = 'yes'
-            else:
-                result = 'no'
+    test_command = ['mys', '-C', package_root, 'test', '-c', '--url', url]
 
-            header = create_log_header(package_root)
-            log = header.encode('utf-8')
-            log += f'$ {" ".join(command)}\n'.encode('utf-8')
-            log += proc.stdout
+    if jobs is not None:
+        test_command += ['-j', jobs]
 
-            return result, log
-        finally:
-            os.chdir(original_dir)
+    test_proc = subprocess.run(test_command,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+
+    if test_proc.returncode == 0:
+        with tarfile.open('coverage.tar.gz', 'w:gz') as tar:
+            tar.add(f'{package_root}/coverage')
+
+        coverage = 'coverage.tar.gz'
+    else:
+        coverage = None
+
+    header = create_log_header(package_root)
+    log = header.encode('utf-8')
+    log += f'$ {" ".join(build_command)}\n'.encode('utf-8')
+    log += build_proc.stdout
+    log += f'$ {" ".join(test_command)}\n'.encode('utf-8')
+    log += test_proc.stdout
+
+    return result, log, coverage
 
 
 def create_html_log(log):
@@ -118,7 +130,7 @@ def create_html_log(log):
     return log
 
 
-def upload_build_result_and_log(package, result, log, url):
+def upload_build_and_test_result(package, result, log, coverage, url):
     response = requests.post(
         f'{url}/standard-library/{package}/build-result.txt',
         data=result)
@@ -129,10 +141,24 @@ def upload_build_result_and_log(package, result, log, url):
         data=create_html_log(log).encode('utf-8'))
     response.raise_for_status()
 
+    if coverage is not None:
+        with open(coverage, 'rb') as fin:
+            response = requests.post(
+                f'{url}/standard-library/{package}/coverage.tar.gz',
+                data=fin.read())
+            response.raise_for_status()
+
 
 def build_and_upload_package(package, url, jobs):
-    result, log = build_package(package, url, jobs)
-    upload_build_result_and_log(package, result, log, url)
+    with tempfile.TemporaryDirectory() as tempdir:
+        original_dir = os.getcwd()
+        os.chdir(tempdir)
+
+        try:
+            result, log, coverage = build_and_test_package(package, url, jobs)
+            upload_build_and_test_result(package, result, log, coverage, url)
+        finally:
+            os.chdir(original_dir)
 
 
 def main():

@@ -308,8 +308,8 @@ class UpdateBuildResultsTest(TestCase):
         response = self.http_get("/standard-library/foo/build-log.html")
         self.assert_equal(response.status_code, 200)
         text = response.text
-        self.assert_equal(text.count('Reading package configuration'), 1)
-        self.assert_equal(text.count('Building'), 1)
+        self.assert_equal(text.count('Reading package configuration'), 2)
+        self.assert_equal(text.count('Building'), 2)
 
 
 class PackageNoDocTest(TestCase):

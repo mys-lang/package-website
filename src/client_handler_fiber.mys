@@ -30,6 +30,8 @@ RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
 RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
 RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
 RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.html$"
+RE_STANDARD_LIBRARY_COVERAGE_TAR_GZ: regex = re"^/standard-library/([\w-]+)/coverage.tar.gz$"
+RE_STANDARD_LIBRARY_COVERAGE: regex = re"^/standard-library/([\w-]+)/coverage/"
 RE_STANDARD_LIBRARY_BUILD_RESULT: regex = re"^/standard-library/([\w-]+)/build-result.txt$"
 RE_STANDARD_LIBRARY_DEPENDENTS: regex = re"^/standard-library/([\w-]+)/dependents.txt$"
 
@@ -289,6 +291,16 @@ class ClientHandlerFiber(Fiber):
             self.handle_standard_library_build_log(request, mo.group(1))
             return
 
+        mo = path.match(RE_STANDARD_LIBRARY_COVERAGE_TAR_GZ)
+
+        if mo is not None:
+            self.handle_standard_library_coverage_tar_gz(request, mo.group(1))
+            return
+
+        if path.match(RE_STANDARD_LIBRARY_COVERAGE) is not None:
+            self.handle_standard_library_coverage(request)
+            return
+
         mo = path.match(RE_STANDARD_LIBRARY_DEPENDENTS)
 
         if mo is not None:
@@ -355,6 +367,8 @@ class ClientHandlerFiber(Fiber):
                         builds_emoji = builds_to_emoji(package.builds)
                         builds_log_path = (
                             f"/standard-library/{package_name}/build-log.html")
+                        coverage_path = (
+                            f"/standard-library/{package_name}/coverage/html/index.html")
                         database_doc_path = (
                             f"/package/{package_name}/latest/index.html")
 
@@ -370,9 +384,15 @@ class ClientHandlerFiber(Fiber):
                             f"      <td>{package.latest_release.description}</td>\n")
                         packages += f"      <td>{package.latest_release.version}</td>\n"
                         packages += f"      <td>{package.number_of_downloads}</td>\n"
+                        packages += "      <td>"
                         packages += (
-                            f"      <td><a href=\"{builds_log_path}\">"
-                            f"{builds_emoji}</a></td>\n")
+                            f"<a href=\"{builds_log_path}\">{builds_emoji}</a>")
+
+                        if self.database.make_path(coverage_path).exists():
+                            packages += (
+                                f" <a href=\"{coverage_path}\">📄</a>")
+
+                        packages += "</td>\n"
                         packages += "    </tr>\n"
                         row_index += 1
 
@@ -541,6 +561,50 @@ class ClientHandlerFiber(Fiber):
                 log_path.mkdir(exists_ok=True)
                 path.write_binary(content)
                 self.write_response(Status.Ok)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    func handle_standard_library_coverage_tar_gz(self,
+                                                 request: Request,
+                                                 package_name: string):
+        match request.method:
+            case "POST":
+                package = self.database.get_package(package_name)
+
+                if package is None:
+                    self.write_response(Status.NotFound)
+                    return
+
+                fiber_path = self.save_post_data_to_file(5_000_000, request.headers)
+
+                if fiber_path is None:
+                    return
+
+                coverage_path = self.database.make_path(
+                    f"standard-library/{package_name}")
+                coverage_path.mkdir(exists_ok=True)
+                tar(fiber_path,
+                    extract=True,
+                    strip_components=2,
+                    output_directory=coverage_path)
+                self.write_response(Status.Ok)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    func handle_standard_library_coverage(self, request: Request):
+        match request.method:
+            case "GET":
+                if ".." in request.path:
+                    self.write_response(Status.BadRequest)
+                    return
+
+                path = self.database.make_path(request.path)
+
+                if path.exists():
+                    self.write_static_response_ok(path)
+                    self.client.write(path.read_binary())
+                else:
+                    self.write_response(Status.NotFound)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
