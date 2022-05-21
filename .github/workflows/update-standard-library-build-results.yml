@@ -22,6 +22,14 @@ jobs:
         sudo apt-get install -qq libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libsdl2-image-dev -y
         python -m pip install --upgrade pip
         pip install mys requests html5lib ansi2html
+    - name: Start Redis
+      uses: supercharge/redis-github-action@1.4.0
+      with:
+        redis-version: 6
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.7.0
+      with:
+        mongodb-version: '5.0'
     - name: Test
       run: |
         python scripts/update_standard_library_build_results.py -j $(nproc)
