@@ -86,11 +86,6 @@ def build_and_test_package(package, url, jobs):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
 
-    if build_proc.returncode == 0:
-        result = 'yes'
-    else:
-        result = 'no'
-
     test_command = ['mys', '-C', package_root, 'test', '-c', '--url', url]
 
     if jobs is not None:
@@ -99,6 +94,11 @@ def build_and_test_package(package, url, jobs):
     test_proc = subprocess.run(test_command,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
+
+    if build_proc.returncode == 0 and test_proc.returncode == 0:
+        result = 'yes'
+    else:
+        result = 'no'
 
     if test_proc.returncode == 0:
         with tarfile.open('coverage.tar.gz', 'w:gz') as tar:

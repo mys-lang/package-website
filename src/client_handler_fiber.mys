@@ -352,7 +352,7 @@ class ClientHandlerFiber(Fiber):
                         "      <th class=\"head\">Description</th>\n"
                         "      <th class=\"head\">Version</th>\n"
                         "      <th class=\"head\">Downloads</th>\n"
-                        "      <th class=\"head\">Builds?</th>\n"
+                        "      <th class=\"head\">Status</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
                         "  <tbody>\n"
@@ -388,7 +388,8 @@ class ClientHandlerFiber(Fiber):
                         packages += (
                             f"<a href=\"{builds_log_path}\">{builds_emoji}</a>")
 
-                        if self.database.make_path(coverage_path).exists():
+                        if (package.builds == "yes"
+                            and self.database.make_path(coverage_path).exists()):
                             packages += (
                                 f" <a href=\"{coverage_path}\">📄</a>")
 
