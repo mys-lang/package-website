@@ -673,6 +673,33 @@ class ClientHandlerFiber(Fiber):
 
         return response
 
+    func handle_graphql_packages(self, selections: [Selection]) -> string:
+        items: [string] = []
+
+        for package_name in self.database.get_packages():
+            fields: [string] = []
+
+            for selection in selections:
+                value: string = None
+
+                match selection.field.name:
+                    case "name":
+                        value = f"\"{package_name}\""
+                    case _:
+                        self.write_response(Status.BadRequest)
+
+                        return None
+
+                fields.append(f"\"{selection.field.name}\": {value}")
+
+            items.append("{" + ",".join(fields) + "}")
+
+        response = "\"packages\":["
+        response += ",".join(items)
+        response += "]"
+
+        return response
+
     func handle_graphql(self, request: Request):
         match request.method:
             case "POST":
@@ -682,8 +709,8 @@ class ClientHandlerFiber(Fiber):
                     return
 
                 try:
-                    document = graphql_parse(
-                        json_decode(string(content)).get("query").get_string())
+                    decoded = json_decode(string(content)).get("query").get_string()
+                    document = graphql_parse(decoded)
 
                     if len(document.definitions) == 0:
                         self.write_response(Status.BadRequest)
@@ -698,26 +725,29 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.BadRequest)
                     return
 
-                if len(selections) == 0:
-                    self.write_response(Status.BadRequest)
-                    return
-
                 response = "{\"data\": {"
+                items: [string] = []
 
                 for selection in selections:
+                    data: string = None
+
                     match selection.field.name:
                         case "statistics":
                             data = self.handle_graphql_statistics(
                                 selection.field.selections)
-
-                            if data is None:
-                                return
-
-                            response += data
+                        case "packages":
+                            data = self.handle_graphql_packages(
+                                selection.field.selections)
                         case _:
                             self.write_response(Status.BadRequest)
                             return
 
+                    if data is None:
+                        return
+
+                    items.append(data)
+
+                response += ",".join(items)
                 response += "}}"
                 self.write_response(Status.Ok, data=response.to_utf8())
             case _:
