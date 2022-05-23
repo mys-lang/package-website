@@ -649,6 +649,11 @@ class ClientHandlerFiber(Fiber):
     func handle_graphql_statistics(self, selections: [Selection]) -> string:
         items: [string] = []
 
+        if selections is None:
+            self.write_response(Status.BadRequest)
+
+            return None
+
         for selection in selections:
             value: string = None
 
@@ -675,6 +680,11 @@ class ClientHandlerFiber(Fiber):
 
     func handle_graphql_packages(self, selections: [Selection]) -> string:
         items: [string] = []
+
+        if selections is None:
+            self.write_response(Status.BadRequest)
+
+            return None
 
         for package_name in self.database.get_packages():
             fields: [string] = []
