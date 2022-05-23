@@ -6,6 +6,12 @@ from os.subprocess import run
 from .database import Database
 from toml import decode as toml_decode
 from toml import Value as TomlValue
+from json import decode as json_decode
+from graphql import parse as graphql_parse
+from graphql import Definition
+from graphql import OperationDefinition
+from graphql import Field
+from graphql import Selection
 from io.buffered_reader import BufferedReader
 from fiber import Fiber
 from fiber import Event
@@ -309,6 +315,10 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/standard-library/list.txt":
             self.handle_standard_library_list(request)
+            return
+
+        if path == "/graphql":
+            self.handle_graphql(request)
             return
 
         self.handle_mys(request)
@@ -633,6 +643,82 @@ class ClientHandlerFiber(Fiber):
             case "GET":
                 packages = self.database.get_packages()
                 self.write_response(Status.Ok, data="\n".join(packages).to_utf8())
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
+    func handle_graphql_statistics(self, selections: [Selection]) -> string:
+        response = "{"
+        items: [string] = []
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "start_date_time":
+                    value = f"\"{self.statistics.start_date_time}\""
+                case "total_number_of_requests":
+                    value = str(sum([
+                        count
+                        for _, count in self.statistics.requests.count
+                    ]))
+                case _:
+                    self.write_response(Status.BadRequest)
+
+                    return None
+
+            items.append(f"\"{selection.field.name}\": {value}")
+
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql(self, request: Request):
+        match request.method:
+            case "POST":
+                content = self.read_post_content(5_000, request.headers)
+
+                if content is None:
+                    return
+
+                try:
+                    document = graphql_parse(
+                        json_decode(string(content)).get("query").get_string())
+
+                    if len(document.definitions) == 0:
+                        self.write_response(Status.BadRequest)
+                        return
+
+                    selections = (document
+                                  .definitions[0]
+                                  .executable_definition
+                                  .operation_definition
+                                  .selections)
+                except Error as error:
+                    self.write_response(Status.BadRequest)
+                    return
+
+                if len(selections) == 0:
+                    self.write_response(Status.BadRequest)
+                    return
+
+                response = "{\"data\":"
+
+                match selections[0].field.name:
+                    case "statistics":
+                        data = self.handle_graphql_statistics(
+                            selections[0].field.selections)
+
+                        if data is None:
+                            return
+
+                        response += data
+                    case _:
+                        self.write_response(Status.BadRequest)
+                        return
+
+                response += "}"
+                self.write_response(Status.Ok, data=response.to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)
 

@@ -1,6 +1,6 @@
 [package]
 name = "website"
-version = "0.59.0"
+version = "0.60.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "The Mys programming language website."
 
@@ -18,3 +18,4 @@ json = "latest"
 collections = "latest"
 semver = "latest"
 io = "latest"
+graphql = "latest"
