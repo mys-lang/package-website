@@ -647,7 +647,6 @@ class ClientHandlerFiber(Fiber):
                 self.write_response(Status.MethodNotAllowed)
 
     func handle_graphql_statistics(self, selections: [Selection]) -> string:
-        response = "{"
         items: [string] = []
 
         for selection in selections:
@@ -668,6 +667,7 @@ class ClientHandlerFiber(Fiber):
 
             items.append(f"\"{selection.field.name}\": {value}")
 
+        response = "\"statistics\":{"
         response += ",".join(items)
         response += "}"
 
@@ -702,22 +702,23 @@ class ClientHandlerFiber(Fiber):
                     self.write_response(Status.BadRequest)
                     return
 
-                response = "{\"data\":"
+                response = "{\"data\": {"
 
-                match selections[0].field.name:
-                    case "statistics":
-                        data = self.handle_graphql_statistics(
-                            selections[0].field.selections)
+                for selection in selections:
+                    match selection.field.name:
+                        case "statistics":
+                            data = self.handle_graphql_statistics(
+                                selection.field.selections)
 
-                        if data is None:
+                            if data is None:
+                                return
+
+                            response += data
+                        case _:
+                            self.write_response(Status.BadRequest)
                             return
 
-                        response += data
-                    case _:
-                        self.write_response(Status.BadRequest)
-                        return
-
-                response += "}"
+                response += "}}"
                 self.write_response(Status.Ok, data=response.to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)
