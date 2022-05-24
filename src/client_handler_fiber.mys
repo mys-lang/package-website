@@ -47,7 +47,8 @@ FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     ".js": "application/javascript",
     ".svg": "image/svg+xml",
     ".png": "image/png",
-    ".woff2": "font/woff2"
+    ".woff2": "font/woff2",
+    ".json": "application/json",
 }
 
 HEADERS_END: bytes = b"\r\n\r\n"
@@ -710,56 +711,66 @@ class ClientHandlerFiber(Fiber):
 
         return response
 
-    func handle_graphql(self, request: Request):
-        match request.method:
-            case "POST":
-                content = self.read_post_content(5_000, request.headers)
+    func handle_graphql_post(self, request: Request):
+        content = self.read_post_content(5_000, request.headers)
 
-                if content is None:
-                    return
+        if content is None:
+            return
 
-                try:
-                    decoded = json_decode(string(content)).get("query").get_string()
-                    document = graphql_parse(decoded)
+        try:
+            if "__schema" in string(content):
+                path = Path(__assets__).join("schema.json")
+                self.write_static_response_ok(path)
+                self.client.write(path.read_binary())
 
-                    if len(document.definitions) == 0:
-                        self.write_response(Status.BadRequest)
-                        return
+                return
+            else:
+                decoded = json_decode(string(content)).get("query").get_string()
+                document = graphql_parse(decoded)
 
-                    selections = (document
-                                  .definitions[0]
-                                  .executable_definition
-                                  .operation_definition
-                                  .selections)
-                except Error as error:
+                if len(document.definitions) == 0:
                     self.write_response(Status.BadRequest)
                     return
 
-                response = "{\"data\": {"
-                items: [string] = []
+                selections = (document
+                              .definitions[0]
+                              .executable_definition
+                              .operation_definition
+                              .selections)
+        except Error as error:
+            self.write_response(Status.BadRequest)
+            return
 
-                for selection in selections:
-                    data: string = None
+        response = "{\"data\": {"
+        items: [string] = []
 
-                    match selection.field.name:
-                        case "statistics":
-                            data = self.handle_graphql_statistics(
-                                selection.field.selections)
-                        case "packages":
-                            data = self.handle_graphql_packages(
-                                selection.field.selections)
-                        case _:
-                            self.write_response(Status.BadRequest)
-                            return
+        for selection in selections:
+            data: string = None
 
-                    if data is None:
-                        return
+            match selection.field.name:
+                case "statistics":
+                    data = self.handle_graphql_statistics(
+                        selection.field.selections)
+                case "packages":
+                    data = self.handle_graphql_packages(
+                        selection.field.selections)
+                case _:
+                    self.write_response(Status.BadRequest)
+                    return
 
-                    items.append(data)
+            if data is None:
+                return
 
-                response += ",".join(items)
-                response += "}}"
-                self.write_response(Status.Ok, data=response.to_utf8())
+            items.append(data)
+
+        response += ",".join(items)
+        response += "}}"
+        self.write_response(Status.Ok, data=response.to_utf8())
+
+    func handle_graphql(self, request: Request):
+        match request.method:
+            case "POST":
+                self.handle_graphql_post(request)
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
