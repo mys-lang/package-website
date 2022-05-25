@@ -93,6 +93,7 @@ class Statistics:
     client_ip_lookup_fiber: _ClientIpLookupFiber
     referrers: OrderedCounter
     no_idle_client_handlers: i64
+    number_of_graphql_requests: i64
 
     func __init__(self, ipinfo_token: string):
         self.start_date_time = LocalDateTime()
@@ -101,6 +102,7 @@ class Statistics:
         self.clients_ip_addresses = {}
         self.referrers = OrderedCounter()
         self.no_idle_client_handlers = 0
+        self.number_of_graphql_requests = 0
         self.client_ip_lookup_fiber = _ClientIpLookupFiber(ipinfo_token,
                                                            self.locations)
         self.client_ip_lookup_fiber.start()

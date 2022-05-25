@@ -787,6 +787,8 @@ class ClientHandlerFiber(Fiber):
                     ]))
                 case "number_of_unique_visitors":
                     value = str(len(self.statistics.clients_ip_addresses))
+                case "number_of_graphql_requests":
+                    value = str(self.statistics.number_of_graphql_requests)
                 case "no_idle_client_handlers":
                     value = str(self.statistics.no_idle_client_handlers)
                 case _ as name:
@@ -818,6 +820,8 @@ class ClientHandlerFiber(Fiber):
 
         if content is None:
             return
+
+        self.statistics.number_of_graphql_requests += 1
 
         try:
             if "__schema" in string(content):
