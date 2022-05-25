@@ -438,10 +438,12 @@ class GraphQLTest(TestCase):
         result = client.execute(gql('{'
                                     '  statistics {'
                                     '    total_number_of_requests'
+                                    '    no_idle_client_handlers'
                                     '  }'
                                     '}'))
-        self.assert_greater_equal(result['statistics']['total_number_of_requests'],
-                                  0)
+        statistics = result['statistics']
+        self.assert_greater_equal(statistics['total_number_of_requests'], 0)
+        self.assert_greater_equal(statistics['no_idle_client_handlers'], 0)
 
 
 class StatisticsTest(TestCase):

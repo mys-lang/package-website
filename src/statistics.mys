@@ -92,6 +92,7 @@ class Statistics:
     clients_ip_addresses: {string}
     client_ip_lookup_fiber: _ClientIpLookupFiber
     referrers: OrderedCounter
+    no_idle_client_handlers: i64
 
     func __init__(self, ipinfo_token: string):
         self.start_date_time = LocalDateTime()
@@ -99,6 +100,7 @@ class Statistics:
         self.locations = {}
         self.clients_ip_addresses = {}
         self.referrers = OrderedCounter()
+        self.no_idle_client_handlers = 0
         self.client_ip_lookup_fiber = _ClientIpLookupFiber(ipinfo_token,
                                                            self.locations)
         self.client_ip_lookup_fiber.start()

@@ -48,6 +48,7 @@ func main(argv: [string]):
 
     while True:
         if len(idle_client_handlers) == 0:
+            statistics.no_idle_client_handlers += 1
             idle_client_handlers_ready.clear()
             idle_client_handlers_ready.wait()
 

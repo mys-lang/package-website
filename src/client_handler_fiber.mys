@@ -785,6 +785,8 @@ class ClientHandlerFiber(Fiber):
                         count
                         for _, count in self.statistics.requests.count
                     ]))
+                case "no_idle_client_handlers":
+                    value = str(self.statistics.no_idle_client_handlers)
                 case _ as name:
                     self.write_graphql_error(f"Bad field '{name}'.")
 
