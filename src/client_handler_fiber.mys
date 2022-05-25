@@ -696,7 +696,7 @@ class ClientHandlerFiber(Fiber):
 
                     return None
 
-            items.append(f"\"{selection.field.name}\": {value}")
+            items.append(f"\"{selection.field.name}\":{value}")
 
         response = "{"
         response += ",".join(items)
@@ -727,7 +727,7 @@ class ClientHandlerFiber(Fiber):
 
                     return None
 
-            items.append(f"\"{selection.field.name}\": {value}")
+            items.append(f"\"{selection.field.name}\":{value}")
 
         response = "{"
         response += ",".join(items)
@@ -758,7 +758,7 @@ class ClientHandlerFiber(Fiber):
 
                     return None
 
-            items.append(f"\"{selection.field.name}\": {value}")
+            items.append(f"\"{selection.field.name}\":{value}")
 
         response = "\"standard_library\":{"
         response += ",".join(items)
@@ -790,7 +790,7 @@ class ClientHandlerFiber(Fiber):
 
                     return None
 
-            items.append(f"\"{selection.field.name}\": {value}")
+            items.append(f"\"{selection.field.name}\":{value}")
 
         response = "\"statistics\":{"
         response += ",".join(items)
@@ -806,7 +806,7 @@ class ClientHandlerFiber(Fiber):
         return response
 
     func write_graphql_error(self, message: string):
-        response = f"{{\"errors\": [{{\"message\": \"{message}\"}}]}}"
+        response = f"{{\"errors\":[{{\"message\":\"{message}\"}}]}}"
         self.write_response(Status.Ok, data=response.to_utf8())
 
     func handle_graphql_post(self, request: Request):
@@ -839,7 +839,7 @@ class ClientHandlerFiber(Fiber):
             self.write_graphql_error(str(error).replace("\"", "'"))
             return
 
-        response = "{\"data\": {"
+        response = "{\"data\":{"
         items: [string] = []
 
         for selection in selections:
