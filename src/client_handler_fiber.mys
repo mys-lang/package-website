@@ -649,23 +649,25 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
-    func handle_graphql_package(self, arguments: [Argument], selections: [Selection]) -> string:
+    func handle_graphql_package(self,
+                                arguments: [Argument],
+                                selections: [Selection]) -> string:
         items: [string] = []
 
         if arguments is None or selections is None:
-            self.write_response(Status.BadRequest)
+            self.write_graphql_error("Bad package request.")
 
             return None
 
         if len(arguments) != 1 or arguments[0].name != "name":
-            self.write_response(Status.BadRequest)
+            self.write_graphql_error("No package name.")
 
             return None
 
         package = self.database.get_package(arguments[0].value)
 
         if package is None:
-            self.write_response(Status.BadRequest)
+            self.write_graphql_error(f"Package '{arguments[0].value}' not found.")
 
             return None
 
@@ -686,9 +688,11 @@ class ClientHandlerFiber(Fiber):
                 case "number_of_downloads":
                     value = str(package.number_of_downloads)
                 case "latest_release":
-                    value = self.handle_graphql_package_latest_release(package.latest_release, selection.field.selections)
-                case _:
-                    self.write_response(Status.BadRequest)
+                    value = self.handle_graphql_package_latest_release(
+                        package.latest_release,
+                        selection.field.selections)
+                case _ as name:
+                    self.write_graphql_error(f"Bad field '{name}'.")
 
                     return None
 
@@ -700,11 +704,13 @@ class ClientHandlerFiber(Fiber):
 
         return response
 
-    func handle_graphql_package_latest_release(self, release: Release, selections: [Selection]) -> string:
+    func handle_graphql_package_latest_release(self,
+                                               release: Release,
+                                               selections: [Selection]) -> string:
         items: [string] = []
 
         if selections is None:
-            self.write_response(Status.BadRequest)
+            self.write_graphql_error("Bad package latest release request.")
 
             return None
 
@@ -716,8 +722,8 @@ class ClientHandlerFiber(Fiber):
                     value = f"\"{release.version}\""
                 case "description":
                     value = f"\"{release.description}\""
-                case _:
-                    self.write_response(Status.BadRequest)
+                case _ as name:
+                    self.write_graphql_error(f"Bad field '{name}'.")
 
                     return None
 
@@ -733,7 +739,7 @@ class ClientHandlerFiber(Fiber):
         items: [string] = []
 
         if selections is None:
-            self.write_response(Status.BadRequest)
+            self.write_graphql_error("Bad statistics request.")
 
             return None
 
@@ -748,8 +754,8 @@ class ClientHandlerFiber(Fiber):
                         count
                         for _, count in self.statistics.requests.count
                     ]))
-                case _:
-                    self.write_response(Status.BadRequest)
+                case _ as name:
+                    self.write_graphql_error(f"Bad field '{name}'.")
 
                     return None
 
@@ -767,6 +773,10 @@ class ClientHandlerFiber(Fiber):
         response += "]"
 
         return response
+
+    func write_graphql_error(self, message: string):
+        response = f"{{\"errors\": [{{\"message\": \"{message}\"}}]}}"
+        self.write_response(Status.Ok, data=response.to_utf8())
 
     func handle_graphql_post(self, request: Request):
         content = self.read_post_content(5_000, request.headers)
@@ -795,7 +805,7 @@ class ClientHandlerFiber(Fiber):
                               .operation_definition
                               .selections)
         except Error as error:
-            self.write_response(Status.BadRequest)
+            self.write_graphql_error(str(error).replace("\"", "'"))
             return
 
         response = "{\"data\": {"
@@ -814,8 +824,8 @@ class ClientHandlerFiber(Fiber):
                         selection.field.selections)
                 case "packages":
                     data = self.handle_graphql_packages()
-                case _:
-                    self.write_response(Status.BadRequest)
+                case _ as name:
+                    self.write_graphql_error(f"Bad field '{name}'.")
                     return
 
             if data is None:
