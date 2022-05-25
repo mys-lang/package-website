@@ -282,6 +282,22 @@
 							"deprecationReason": null
 						},
 						{
+							"name": "number_of_unique_visitors",
+							"description": null,
+							"args": [],
+							"type": {
+								"kind": "NON_NULL",
+								"name": null,
+								"ofType": {
+									"kind": "SCALAR",
+									"name": "Int",
+									"ofType": null
+								}
+							},
+							"isDeprecated": false,
+							"deprecationReason": null
+						},
+						{
 							"name": "no_idle_client_handlers",
 							"description": null,
 							"args": [],

@@ -785,6 +785,8 @@ class ClientHandlerFiber(Fiber):
                         count
                         for _, count in self.statistics.requests.count
                     ]))
+                case "number_of_unique_visitors":
+                    value = str(len(self.statistics.clients_ip_addresses))
                 case "no_idle_client_handlers":
                     value = str(self.statistics.no_idle_client_handlers)
                 case _ as name:
