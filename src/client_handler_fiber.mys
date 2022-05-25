@@ -4,6 +4,7 @@ from os import OsError
 from os.path import Path
 from os.subprocess import run
 from .database import Database
+from .database import Release
 from toml import decode as toml_decode
 from toml import Value as TomlValue
 from json import decode as json_decode
@@ -12,6 +13,7 @@ from graphql import Definition
 from graphql import OperationDefinition
 from graphql import Field
 from graphql import Selection
+from graphql import Argument
 from io.buffered_reader import BufferedReader
 from fiber import Fiber
 from fiber import Event
@@ -647,6 +649,86 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
+    func handle_graphql_package(self, arguments: [Argument], selections: [Selection]) -> string:
+        items: [string] = []
+
+        if arguments is None or selections is None:
+            self.write_response(Status.BadRequest)
+
+            return None
+
+        if len(arguments) != 1 or arguments[0].name != "name":
+            self.write_response(Status.BadRequest)
+
+            return None
+
+        package = self.database.get_package(arguments[0].value)
+
+        if package is None:
+            self.write_response(Status.BadRequest)
+
+            return None
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "name":
+                    value = f"\"{package.name}\""
+                case "builds":
+                    match package.builds:
+                        case "yes":
+                            value = "true"
+                        case "no":
+                            value = "false"
+                        case _:
+                            value = "null"
+                case "number_of_downloads":
+                    value = str(package.number_of_downloads)
+                case "latest_release":
+                    value = self.handle_graphql_package_latest_release(package.latest_release, selection.field.selections)
+                case _:
+                    self.write_response(Status.BadRequest)
+
+                    return None
+
+            items.append(f"\"{selection.field.name}\": {value}")
+
+        response = "\"package\":{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql_package_latest_release(self, release: Release, selections: [Selection]) -> string:
+        items: [string] = []
+
+        if selections is None:
+            self.write_response(Status.BadRequest)
+
+            return None
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "version":
+                    value = f"\"{release.version}\""
+                case "description":
+                    value = f"\"{release.description}\""
+                case _:
+                    self.write_response(Status.BadRequest)
+
+                    return None
+
+            items.append(f"\"{selection.field.name}\": {value}")
+
+        response = "{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
     func handle_graphql_statistics(self, selections: [Selection]) -> string:
         items: [string] = []
 
@@ -681,7 +763,7 @@ class ClientHandlerFiber(Fiber):
 
     func handle_graphql_packages(self) -> string:
         response = "\"packages\":["
-        response += ",".join(self.database.get_packages())
+        response += ",".join([f"\"{name}\"" for name in self.database.get_packages()])
         response += "]"
 
         return response
@@ -725,6 +807,10 @@ class ClientHandlerFiber(Fiber):
             match selection.field.name:
                 case "statistics":
                     data = self.handle_graphql_statistics(
+                        selection.field.selections)
+                case "package":
+                    data = self.handle_graphql_package(
+                        selection.field.arguments,
                         selection.field.selections)
                 case "packages":
                     data = self.handle_graphql_packages()
