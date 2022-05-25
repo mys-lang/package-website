@@ -16,7 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install mys systest pexpect requests html5lib ansi2html
+        pip install mys systest pexpect requests html5lib ansi2html gql[all]
     - name: Test
       run: |
         mys test

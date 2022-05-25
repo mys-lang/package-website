@@ -9,6 +9,8 @@ import subprocess
 import systest
 import logging
 import threading
+from gql import gql, Client
+from gql.transport.aiohttp import AIOHTTPTransport
 
 LOGGER = logging.getLogger(__name__)
 
@@ -394,6 +396,51 @@ class PackageListTest(TestCase):
         self.assert_in('list_b', response.text)
 
 
+class GraphQLTest(TestCase):
+    """GraphQL tests.
+
+    """
+
+    def publish_new_package(self, name):
+        shutil.rmtree(name, ignore_errors=True)
+        self.subprocess_run(["mys", "new", name])
+        self.subprocess_run(["mys", "-C", name, "publish", "-a", BASE_URL])
+
+    def create_graphql_client(self):
+        transport = AIOHTTPTransport(url=f"{BASE_URL}/graphql")
+
+        return Client(transport=transport, fetch_schema_from_transport=True)
+
+    def run(self):
+        self.publish_new_package("graphql_a")
+        self.publish_new_package("graphql_b")
+
+        client = self.create_graphql_client()
+
+        result = client.execute(gql("{packages}"))
+        self.assert_in('graphql_a', result['packages'])
+        self.assert_in('graphql_b', result['packages'])
+
+        result = client.execute(gql('{'
+                                    '  package(name: "graphql_b") {'
+                                    '    name'
+                                    '    latest_release {'
+                                    '      version'
+                                    '    }'
+                                    '  }'
+                                    '}'))
+        self.assert_equal(result['package']['name'], 'graphql_b')
+        self.assert_equal(result['package']['latest_release']['version'], '0.1.0')
+
+        result = client.execute(gql('{'
+                                    '  statistics {'
+                                    '    total_number_of_requests'
+                                    '  }'
+                                    '}'))
+        self.assert_greater_equal(result['statistics']['total_number_of_requests'],
+                                  0)
+
+
 class StatisticsTest(TestCase):
 
     def run(self):
@@ -438,7 +485,8 @@ def main():
         StatisticsTest(),
         ResponseContentTypeJsTest(),
         PackageDependentsTest(),
-        PackageListTest()
+        PackageListTest(),
+        GraphQLTest()
     )
 
     website.close()
