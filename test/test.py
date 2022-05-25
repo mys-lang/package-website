@@ -417,20 +417,23 @@ class GraphQLTest(TestCase):
 
         client = self.create_graphql_client()
 
-        result = client.execute(gql("{packages}"))
-        self.assert_in('graphql_a', result['packages'])
-        self.assert_in('graphql_b', result['packages'])
+        result = client.execute(gql("{standard_library{packages}}"))
+        self.assert_in('graphql_a', result['standard_library']['packages'])
+        self.assert_in('graphql_b', result['standard_library']['packages'])
 
         result = client.execute(gql('{'
-                                    '  package(name: "graphql_b") {'
-                                    '    name'
-                                    '    latest_release {'
-                                    '      version'
+                                    '  standard_library {'
+                                    '    package(name: "graphql_b") {'
+                                    '      name'
+                                    '      latest_release {'
+                                    '        version'
+                                    '      }'
                                     '    }'
                                     '  }'
                                     '}'))
-        self.assert_equal(result['package']['name'], 'graphql_b')
-        self.assert_equal(result['package']['latest_release']['version'], '0.1.0')
+        package = result['standard_library']['package']
+        self.assert_equal(package['name'], 'graphql_b')
+        self.assert_equal(package['latest_release']['version'], '0.1.0')
 
         result = client.execute(gql('{'
                                     '  statistics {'

@@ -698,7 +698,7 @@ class ClientHandlerFiber(Fiber):
 
             items.append(f"\"{selection.field.name}\": {value}")
 
-        response = "\"package\":{"
+        response = "{"
         response += ",".join(items)
         response += "}"
 
@@ -730,6 +730,37 @@ class ClientHandlerFiber(Fiber):
             items.append(f"\"{selection.field.name}\": {value}")
 
         response = "{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql_standard_library(self, selections: [Selection]) -> string:
+        items: [string] = []
+
+        if selections is None:
+            self.write_graphql_error("Bad standard_library request.")
+
+            return None
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "package":
+                    value = self.handle_graphql_package(
+                        selection.field.arguments,
+                        selection.field.selections)
+                case "packages":
+                    value = self.handle_graphql_packages()
+                case _ as name:
+                    self.write_graphql_error(f"Bad field '{name}'.")
+
+                    return None
+
+            items.append(f"\"{selection.field.name}\": {value}")
+
+        response = "\"standard_library\":{"
         response += ",".join(items)
         response += "}"
 
@@ -768,7 +799,7 @@ class ClientHandlerFiber(Fiber):
         return response
 
     func handle_graphql_packages(self) -> string:
-        response = "\"packages\":["
+        response = "["
         response += ",".join([f"\"{name}\"" for name in self.database.get_packages()])
         response += "]"
 
@@ -818,12 +849,9 @@ class ClientHandlerFiber(Fiber):
                 case "statistics":
                     data = self.handle_graphql_statistics(
                         selection.field.selections)
-                case "package":
-                    data = self.handle_graphql_package(
-                        selection.field.arguments,
+                case "standard_library":
+                    data = self.handle_graphql_standard_library(
                         selection.field.selections)
-                case "packages":
-                    data = self.handle_graphql_packages()
                 case _ as name:
                     self.write_graphql_error(f"Bad field '{name}'.")
                     return

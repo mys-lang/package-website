@@ -13,6 +13,45 @@
 					"description": null,
 					"fields": [
 						{
+							"name": "standard_library",
+							"description": null,
+							"args": [],
+							"type": {
+								"kind": "OBJECT",
+								"name": "StandardLibrary",
+								"ofType": null
+							},
+							"isDeprecated": false,
+							"deprecationReason": null
+						},
+						{
+							"name": "statistics",
+							"description": null,
+							"args": [],
+							"type": {
+								"kind": "NON_NULL",
+								"name": null,
+								"ofType": {
+									"kind": "OBJECT",
+									"name": "Statistics",
+									"ofType": null
+								}
+							},
+							"isDeprecated": false,
+							"deprecationReason": null
+						}
+					],
+					"inputFields": null,
+					"interfaces": [],
+					"enumValues": null,
+					"possibleTypes": null
+				},
+				{
+					"kind": "OBJECT",
+					"name": "StandardLibrary",
+					"description": null,
+					"fields": [
+						{
 							"name": "package",
 							"description": null,
 							"args": [
@@ -58,22 +97,6 @@
 							},
 							"isDeprecated": false,
 							"deprecationReason": null
-						},
-						{
-							"name": "statistics",
-							"description": null,
-							"args": [],
-							"type": {
-								"kind": "NON_NULL",
-								"name": null,
-								"ofType": {
-									"kind": "OBJECT",
-									"name": "Statistics",
-									"ofType": null
-								}
-							},
-							"isDeprecated": false,
-							"deprecationReason": null
 						}
 					],
 					"inputFields": null,
@@ -98,7 +121,7 @@
 					"fields": [
 						{
 							"name": "name",
-							"description": null,
+							"description": "",
 							"args": [],
 							"type": {
 								"kind": "NON_NULL",
