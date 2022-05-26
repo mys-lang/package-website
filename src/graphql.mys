@@ -43,10 +43,11 @@ class GraphQL:
         if argument.value is None:
             raise RequestError("No package name value.")
 
-        package = self._database.get_package(argument.value)
+        package_name = argument.value
+        package = self._database.get_package(package_name)
 
         if package is None:
-            raise RequestError(f"Package '{argument.value}' not found.")
+            raise RequestError(f"Package '{package_name}' not found.")
 
         items: [string] = []
 
@@ -66,6 +67,14 @@ class GraphQL:
                             value = "null"
                 case "number_of_downloads":
                     value = str(package.number_of_downloads)
+                case "coverage":
+                    total_path = self._database.make_path(
+                        f"standard-library/{package_name}/total.txt")
+
+                    try:
+                        value = total_path.read_text().strip()
+                    except Error:
+                        raise RequestError("No coverage found.")
                 case "latest_release":
                     value = self._resolve_package_latest_release(
                         package.latest_release,

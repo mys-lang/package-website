@@ -13,6 +13,7 @@ type Package {
     latest_release: Release!
     number_of_downloads: Int!
     builds: Boolean
+    coverage: Float
 }
 
 type Release {
