@@ -3,28 +3,24 @@ from os import tar
 from os import OsError
 from os.path import Path
 from os.subprocess import run
-from .database import Database
-from .database import Release
 from toml import decode as toml_decode
 from toml import Value as TomlValue
 from json import decode as json_decode
 from graphql import parse as graphql_parse
-from graphql import Definition
-from graphql import OperationDefinition
-from graphql import Field
-from graphql import Selection
-from graphql import Argument
 from io.buffered_reader import BufferedReader
 from fiber import Fiber
 from fiber import Event
-from . import create_token
 from http.header_parser import parse_request
 from http import HttpError
 from http.header_parser import Request
 from semver import Version
-from .statistics import Statistics
 from string import StringBuilder
+from . import create_token
 from . import Status
+from .database import Database
+from .database import Release
+from .graphql import GraphQL
+from .statistics import Statistics
 
 RE_MYS_VERSION_STANDARD_LIBRARY: regex = (
     re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
@@ -167,13 +163,15 @@ class ClientHandlerFiber(Fiber):
     root_directory: Path
     response_status: Status
     _buffered_reader: BufferedReader
+    _graphql: GraphQL
 
     func __init__(self,
-                 database: Database,
-                 statistics: Statistics,
-                 idle_client_handlers: [i64],
-                 idle_client_handlers_ready: Event,
-                 index: i64):
+                  database: Database,
+                  statistics: Statistics,
+                  graphql: GraphQL,
+                  idle_client_handlers: [i64],
+                  idle_client_handlers_ready: Event,
+                  index: i64):
         self.database = database
         self.statistics = statistics
         self.idle_client_handlers = idle_client_handlers
@@ -185,6 +183,7 @@ class ClientHandlerFiber(Fiber):
         self.create_root_directory()
         self.response_status = Status.Unknown
         self._buffered_reader = None
+        self._graphql = graphql
 
     func create_root_directory(self):
         self.root_directory.rm(recursive=True, force=True)
@@ -637,7 +636,8 @@ class ClientHandlerFiber(Fiber):
                     if len(dependents) > 0:
                         dependents.append("")
 
-                    self.write_response(Status.Ok, data="\n".join(dependents).to_utf8())
+                    self.write_response(Status.Ok,
+                                        data="\n".join(dependents).to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
@@ -648,179 +648,6 @@ class ClientHandlerFiber(Fiber):
                 self.write_response(Status.Ok, data="\n".join(packages).to_utf8())
             case _:
                 self.write_response(Status.MethodNotAllowed)
-
-    func handle_graphql_package(self,
-                                arguments: [Argument],
-                                selections: [Selection]) -> string:
-        items: [string] = []
-
-        if arguments is None or selections is None:
-            self.write_graphql_error("Bad package request.")
-
-            return None
-
-        if len(arguments) != 1 or arguments[0].name != "name":
-            self.write_graphql_error("No package name.")
-
-            return None
-
-        argument = arguments[0]
-
-        if argument.value is None:
-            self.write_graphql_error("No package name value.")
-
-            return None
-
-        package = self.database.get_package(argument.value)
-
-        if package is None:
-            self.write_graphql_error(f"Package '{argument.value}' not found.")
-
-            return None
-
-        for selection in selections:
-            value: string = None
-
-            match selection.field.name:
-                case "name":
-                    value = f"\"{package.name}\""
-                case "builds":
-                    match package.builds:
-                        case "yes":
-                            value = "true"
-                        case "no":
-                            value = "false"
-                        case _:
-                            value = "null"
-                case "number_of_downloads":
-                    value = str(package.number_of_downloads)
-                case "latest_release":
-                    value = self.handle_graphql_package_latest_release(
-                        package.latest_release,
-                        selection.field.selections)
-                case _ as name:
-                    self.write_graphql_error(f"Bad field '{name}'.")
-
-                    return None
-
-            items.append(f"\"{selection.field.name}\":{value}")
-
-        response = "{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
-
-    func handle_graphql_package_latest_release(self,
-                                               release: Release,
-                                               selections: [Selection]) -> string:
-        items: [string] = []
-
-        if selections is None:
-            self.write_graphql_error("Bad package latest release request.")
-
-            return None
-
-        for selection in selections:
-            value: string = None
-
-            match selection.field.name:
-                case "version":
-                    value = f"\"{release.version}\""
-                case "description":
-                    value = f"\"{release.description}\""
-                case _ as name:
-                    self.write_graphql_error(f"Bad field '{name}'.")
-
-                    return None
-
-            items.append(f"\"{selection.field.name}\":{value}")
-
-        response = "{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
-
-    func handle_graphql_standard_library(self, selections: [Selection]) -> string:
-        items: [string] = []
-
-        if selections is None:
-            self.write_graphql_error("Bad standard_library request.")
-
-            return None
-
-        for selection in selections:
-            value: string = None
-
-            match selection.field.name:
-                case "package":
-                    value = self.handle_graphql_package(
-                        selection.field.arguments,
-                        selection.field.selections)
-                case "packages":
-                    value = self.handle_graphql_packages()
-                case _ as name:
-                    self.write_graphql_error(f"Bad field '{name}'.")
-
-                    return None
-
-            items.append(f"\"{selection.field.name}\":{value}")
-
-        response = "\"standard_library\":{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
-
-    func handle_graphql_statistics(self, selections: [Selection]) -> string:
-        items: [string] = []
-
-        if selections is None:
-            self.write_graphql_error("Bad statistics request.")
-
-            return None
-
-        for selection in selections:
-            value: string = None
-
-            match selection.field.name:
-                case "start_date_time":
-                    value = f"\"{self.statistics.start_date_time}\""
-                case "total_number_of_requests":
-                    value = str(sum([
-                        count
-                        for _, count in self.statistics.requests.count
-                    ]))
-                case "number_of_unique_visitors":
-                    value = str(len(self.statistics.clients_ip_addresses))
-                case "number_of_graphql_requests":
-                    value = str(self.statistics.number_of_graphql_requests)
-                case "no_idle_client_handlers":
-                    value = str(self.statistics.no_idle_client_handlers)
-                case _ as name:
-                    self.write_graphql_error(f"Bad field '{name}'.")
-
-                    return None
-
-            items.append(f"\"{selection.field.name}\":{value}")
-
-        response = "\"statistics\":{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
-
-    func handle_graphql_packages(self) -> string:
-        response = "["
-        response += ",".join([f"\"{name}\"" for name in self.database.get_packages()])
-        response += "]"
-
-        return response
-
-    func write_graphql_error(self, message: string):
-        response = f"{{\"errors\":[{{\"message\":\"{message}\"}}]}}"
-        self.write_response(Status.Ok, data=response.to_utf8())
 
     func handle_graphql_post(self, request: Request):
         content = self.read_post_content(5_000, request.headers)
@@ -840,44 +667,11 @@ class ClientHandlerFiber(Fiber):
             else:
                 decoded = json_decode(string(content)).get("query").get_string()
                 document = graphql_parse(decoded)
-
-                if len(document.definitions) == 0:
-                    self.write_response(Status.BadRequest)
-                    return
-
-                selections = (document
-                              .definitions[0]
-                              .executable_definition
-                              .operation_definition
-                              .selections)
+                response = self._graphql.handle_request(document)
         except Error as error:
-            self.write_graphql_error(str(error).replace("\"", "'"))
-            return
+            message = str(error).replace("\"", "'")
+            response = f"{{\"errors\":[{{\"message\":\"{message}\"}}]}}"
 
-        response = "{\"data\":{"
-        items: [string] = []
-
-        for selection in selections:
-            data: string = None
-
-            match selection.field.name:
-                case "statistics":
-                    data = self.handle_graphql_statistics(
-                        selection.field.selections)
-                case "standard_library":
-                    data = self.handle_graphql_standard_library(
-                        selection.field.selections)
-                case _ as name:
-                    self.write_graphql_error(f"Bad field '{name}'.")
-                    return
-
-            if data is None:
-                return
-
-            items.append(data)
-
-        response += ",".join(items)
-        response += "}}"
         self.write_response(Status.Ok, data=response.to_utf8())
 
     func handle_graphql(self, request: Request):

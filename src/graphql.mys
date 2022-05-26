@@ -1,0 +1,204 @@
+from graphql import Document
+from graphql import Definition
+from graphql import OperationDefinition
+from graphql import Field
+from graphql import Selection
+from graphql import Argument
+from .database import Database
+from .database import Release
+from .statistics import Statistics
+
+class RequestError(Error):
+    message: string
+
+class GraphQL:
+    _database: Database
+    _statistics: Statistics
+
+    func __init__(self, database: Database, statistics: Statistics):
+        self._database = database
+        self._statistics = statistics
+
+    func handle_graphql_package(self,
+                                arguments: [Argument],
+                                selections: [Selection]) -> string:
+        items: [string] = []
+
+        if arguments is None or selections is None:
+            raise RequestError("Bad package.")
+
+        if len(arguments) != 1 or arguments[0].name != "name":
+            raise RequestError("No package name.")
+
+        argument = arguments[0]
+
+        if argument.value is None:
+            raise RequestError("No package name value.")
+
+        package = self._database.get_package(argument.value)
+
+        if package is None:
+            raise RequestError(f"Package '{argument.value}' not found.")
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "name":
+                    value = f"\"{package.name}\""
+                case "builds":
+                    match package.builds:
+                        case "yes":
+                            value = "true"
+                        case "no":
+                            value = "false"
+                        case _:
+                            value = "null"
+                case "number_of_downloads":
+                    value = str(package.number_of_downloads)
+                case "latest_release":
+                    value = self.handle_graphql_package_latest_release(
+                        package.latest_release,
+                        selection.field.selections)
+
+                    if value is None:
+                        return None
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            items.append(f"\"{selection.field.name}\":{value}")
+
+        response = "{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql_package_latest_release(self,
+                                               release: Release,
+                                               selections: [Selection]) -> string:
+        items: [string] = []
+
+        if selections is None:
+            raise RequestError("Bad package latest release.")
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "version":
+                    value = f"\"{release.version}\""
+                case "description":
+                    value = f"\"{release.description}\""
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            items.append(f"\"{selection.field.name}\":{value}")
+
+        response = "{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql_standard_library(self, selections: [Selection]) -> string:
+        items: [string] = []
+
+        if selections is None:
+            raise RequestError("Bad standard_library.")
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "package":
+                    value = self.handle_graphql_package(selection.field.arguments,
+                                                        selection.field.selections)
+                case "packages":
+                    value = self.handle_graphql_packages()
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            items.append(f"\"{selection.field.name}\":{value}")
+
+        response = "\"standard_library\":{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql_statistics(self, selections: [Selection]) -> string:
+        items: [string] = []
+
+        if selections is None:
+            raise RequestError("Bad statistics request.")
+
+        for selection in selections:
+            value: string = None
+
+            match selection.field.name:
+                case "start_date_time":
+                    value = f"\"{self._statistics.start_date_time}\""
+                case "total_number_of_requests":
+                    value = str(sum([
+                        count
+                        for _, count in self._statistics.requests.count
+                    ]))
+                case "number_of_unique_visitors":
+                    value = str(len(self._statistics.clients_ip_addresses))
+                case "number_of_graphql_requests":
+                    value = str(self._statistics.number_of_graphql_requests)
+                case "no_idle_client_handlers":
+                    value = str(self._statistics.no_idle_client_handlers)
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            items.append(f"\"{selection.field.name}\":{value}")
+
+        response = "\"statistics\":{"
+        response += ",".join(items)
+        response += "}"
+
+        return response
+
+    func handle_graphql_packages(self) -> string:
+        response = "["
+        response += ",".join([f"\"{name}\"" for name in self._database.get_packages()])
+        response += "]"
+
+        return response
+
+    func handle_request(self, document: Document) -> string:
+        if len(document.definitions) == 0:
+            raise RequestError("No definition.")
+
+        selections = (document
+                      .definitions[0]
+                      .executable_definition
+                      .operation_definition
+                      .selections)
+        response = "{\"data\":{"
+        items: [string] = []
+
+        for selection in selections:
+            data: string = None
+
+            match selection.field.name:
+                case "statistics":
+                    data = self.handle_graphql_statistics(
+                        selection.field.selections)
+                case "standard_library":
+                    data = self.handle_graphql_standard_library(
+                        selection.field.selections)
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            if data is None:
+                raise RequestError("No selections.")
+
+            items.append(data)
+
+        response += ",".join(items)
+        response += "}}"
+
+        return response

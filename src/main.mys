@@ -4,6 +4,7 @@ from fiber import Event
 from os.path import Path
 from net.tcp.server import Server
 from .database import Database
+from .graphql import GraphQL
 from .statistics import Statistics
 from .client_handler_fiber import ClientHandlerFiber
 
@@ -26,6 +27,7 @@ func main(argv: [string]):
 
     database = Database(Path(args.value_of("--database-directory")))
     statistics = Statistics(args.value_of("--ipinfo-token"))
+    graphql = GraphQL(database, statistics)
 
     client_handlers: [ClientHandlerFiber] = []
     idle_client_handlers: [i64] = []
@@ -34,6 +36,7 @@ func main(argv: [string]):
     for i in range(20):
         client_handlers.append(ClientHandlerFiber(database,
                                                   statistics,
+                                                  graphql,
                                                   idle_client_handlers,
                                                   idle_client_handlers_ready,
                                                   i))
