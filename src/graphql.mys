@@ -60,9 +60,6 @@ class GraphQL:
                     value = self._handle_graphql_package_latest_release(
                         package.latest_release,
                         selection.field.selections)
-
-                    if value is None:
-                        return None
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
@@ -192,9 +189,6 @@ class GraphQL:
                         selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
-
-            if data is None:
-                raise RequestError("No selections.")
 
             items.append(data)
 
