@@ -5,7 +5,7 @@ type Query {
 
 type StandardLibrary {
     package(name: String!): Package!
-    packages: [String!]
+    packages: [Package!]
 }
 
 type Package {

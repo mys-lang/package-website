@@ -6,6 +6,7 @@ from graphql import Selection
 from graphql import Argument
 from .database import Database
 from .database import Release
+from .database import Package
 from .statistics import Statistics
 
 class RequestError(Error):
@@ -29,21 +30,12 @@ class GraphQL:
         self._database = database
         self._statistics = statistics
 
-    func _resolve_package(self,
-                          arguments: [Argument],
-                          selections: [Selection]) -> string:
-        if arguments is None or selections is None:
+    func _resolve_package_type(self,
+                               package_name: string,
+                               selections: [Selection]) -> string:
+        if selections is None:
             raise RequestError("Bad package.")
 
-        if len(arguments) != 1 or arguments[0].name != "name":
-            raise RequestError("No package name.")
-
-        argument = arguments[0]
-
-        if argument.value is None:
-            raise RequestError("No package name value.")
-
-        package_name = argument.value
         package = self._database.get_package(package_name)
 
         if package is None:
@@ -86,6 +78,22 @@ class GraphQL:
 
         return _format_object(items)
 
+    func _resolve_package(self,
+                          arguments: [Argument],
+                          selections: [Selection]) -> string:
+        if arguments is None:
+            raise RequestError("Bad package.")
+
+        if len(arguments) != 1 or arguments[0].name != "name":
+            raise RequestError("No package name.")
+
+        argument = arguments[0]
+
+        if argument.value is None:
+            raise RequestError("No package name value.")
+
+        return self._resolve_package_type(argument.value, selections)
+
     func _resolve_package_latest_release(self,
                                          release: Release,
                                          selections: [Selection]) -> string:
@@ -123,7 +131,7 @@ class GraphQL:
                     value = self._resolve_package(selection.field.arguments,
                                                   selection.field.selections)
                 case "packages":
-                    value = self._resolve_packages()
+                    value = self._resolve_packages(selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
@@ -161,9 +169,17 @@ class GraphQL:
 
         return _format_object(items)
 
-    func _resolve_packages(self) -> string:
+    func _resolve_packages(self, selections: [Selection]) -> string:
+        if selections is None:
+            raise RequestError("Bad packages request.")
+
+        items: [string] = []
+
+        for name in self._database.get_packages():
+            items.append(self._resolve_package_type(name, selections))
+
         response = "["
-        response += ",".join([f"\"{name}\"" for name in self._database.get_packages()])
+        response += ",".join(items)
         response += "]"
 
         return response

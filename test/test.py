@@ -417,9 +417,11 @@ class GraphQLTest(TestCase):
 
         client = self.create_graphql_client()
 
-        result = client.execute(gql("{standard_library{packages}}"))
-        self.assert_in('graphql_a', result['standard_library']['packages'])
-        self.assert_in('graphql_b', result['standard_library']['packages'])
+        result = client.execute(gql("{standard_library{packages{name}}}"))
+        packages = result['standard_library']['packages']
+        package_names = [package['name']for package in packages]
+        self.assert_in('graphql_a', package_names)
+        self.assert_in('graphql_b', package_names)
 
         result = client.execute(gql('{'
                                     '  standard_library {'
