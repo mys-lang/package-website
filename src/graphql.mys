@@ -19,9 +19,9 @@ class GraphQL:
         self._database = database
         self._statistics = statistics
 
-    func handle_graphql_package(self,
-                                arguments: [Argument],
-                                selections: [Selection]) -> string:
+    func _handle_graphql_package(self,
+                                 arguments: [Argument],
+                                 selections: [Selection]) -> string:
         items: [string] = []
 
         if arguments is None or selections is None:
@@ -57,7 +57,7 @@ class GraphQL:
                 case "number_of_downloads":
                     value = str(package.number_of_downloads)
                 case "latest_release":
-                    value = self.handle_graphql_package_latest_release(
+                    value = self._handle_graphql_package_latest_release(
                         package.latest_release,
                         selection.field.selections)
 
@@ -74,9 +74,9 @@ class GraphQL:
 
         return response
 
-    func handle_graphql_package_latest_release(self,
-                                               release: Release,
-                                               selections: [Selection]) -> string:
+    func _handle_graphql_package_latest_release(self,
+                                                release: Release,
+                                                selections: [Selection]) -> string:
         items: [string] = []
 
         if selections is None:
@@ -101,7 +101,7 @@ class GraphQL:
 
         return response
 
-    func handle_graphql_standard_library(self, selections: [Selection]) -> string:
+    func _handle_graphql_standard_library(self, selections: [Selection]) -> string:
         items: [string] = []
 
         if selections is None:
@@ -112,10 +112,10 @@ class GraphQL:
 
             match selection.field.name:
                 case "package":
-                    value = self.handle_graphql_package(selection.field.arguments,
-                                                        selection.field.selections)
+                    value = self._handle_graphql_package(selection.field.arguments,
+                                                         selection.field.selections)
                 case "packages":
-                    value = self.handle_graphql_packages()
+                    value = self._handle_graphql_packages()
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
@@ -127,7 +127,7 @@ class GraphQL:
 
         return response
 
-    func handle_graphql_statistics(self, selections: [Selection]) -> string:
+    func _handle_graphql_statistics(self, selections: [Selection]) -> string:
         items: [string] = []
 
         if selections is None:
@@ -161,7 +161,7 @@ class GraphQL:
 
         return response
 
-    func handle_graphql_packages(self) -> string:
+    func _handle_graphql_packages(self) -> string:
         response = "["
         response += ",".join([f"\"{name}\"" for name in self._database.get_packages()])
         response += "]"
@@ -185,10 +185,10 @@ class GraphQL:
 
             match selection.field.name:
                 case "statistics":
-                    data = self.handle_graphql_statistics(
+                    data = self._handle_graphql_statistics(
                         selection.field.selections)
                 case "standard_library":
-                    data = self.handle_graphql_standard_library(
+                    data = self._handle_graphql_standard_library(
                         selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
