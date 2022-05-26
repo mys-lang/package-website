@@ -17,9 +17,13 @@
 							"description": null,
 							"args": [],
 							"type": {
-								"kind": "OBJECT",
-								"name": "StandardLibrary",
-								"ofType": null
+								"kind": "NON_NULL",
+								"name": null,
+								"ofType": {
+									"kind": "OBJECT",
+									"name": "StandardLibrary",
+									"ofType": null
+								}
 							},
 							"isDeprecated": false,
 							"deprecationReason": null
@@ -71,9 +75,13 @@
 								}
 							],
 							"type": {
-								"kind": "OBJECT",
-								"name": "Package",
-								"ofType": null
+								"kind": "NON_NULL",
+								"name": null,
+								"ofType": {
+									"kind": "OBJECT",
+									"name": "Package",
+									"ofType": null
+								}
 							},
 							"isDeprecated": false,
 							"deprecationReason": null
@@ -140,9 +148,13 @@
 							"description": null,
 							"args": [],
 							"type": {
-								"kind": "OBJECT",
-								"name": "Release",
-								"ofType": null
+								"kind": "NON_NULL",
+								"name": null,
+								"ofType": {
+									"kind": "OBJECT",
+									"name": "Release",
+									"ofType": null
+								}
 							},
 							"isDeprecated": false,
 							"deprecationReason": null
