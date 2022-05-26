@@ -664,10 +664,17 @@ class ClientHandlerFiber(Fiber):
 
             return None
 
-        package = self.database.get_package(arguments[0].value)
+        argument = arguments[0]
+
+        if argument.value is None:
+            self.write_graphql_error("No package name value.")
+
+            return None
+
+        package = self.database.get_package(argument.value)
 
         if package is None:
-            self.write_graphql_error(f"Package '{arguments[0].value}' not found.")
+            self.write_graphql_error(f"Package '{argument.value}' not found.")
 
             return None
 
