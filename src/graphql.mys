@@ -11,6 +11,9 @@ from .statistics import Statistics
 class RequestError(Error):
     message: string
 
+func _format_item(name: string, value: string) -> string:
+    return f"\"{name}\":{value}"
+
 func _format_object(items: [string]) -> string:
     response = "{"
     response += ",".join(items)
@@ -70,7 +73,7 @@ class GraphQL:
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(f"\"{selection.field.name}\":{value}")
+            items.append(_format_item(selection.field.name, value))
 
         return _format_object(items)
 
@@ -93,7 +96,7 @@ class GraphQL:
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(f"\"{selection.field.name}\":{value}")
+            items.append(_format_item(selection.field.name, value))
 
         return _format_object(items)
 
@@ -115,7 +118,7 @@ class GraphQL:
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(f"\"{selection.field.name}\":{value}")
+            items.append(_format_item(selection.field.name, value))
 
         return _format_object(items)
 
@@ -145,7 +148,7 @@ class GraphQL:
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(f"\"{selection.field.name}\":{value}")
+            items.append(_format_item(selection.field.name, value))
 
         return _format_object(items)
 
@@ -168,16 +171,17 @@ class GraphQL:
         items: [string] = []
 
         for selection in selections:
-            data: string = None
+            value: string = None
 
             match selection.field.name:
                 case "statistics":
-                    data = self._resolve_statistics(selection.field.selections)
+                    value = self._resolve_statistics(selection.field.selections)
                 case "standard_library":
-                    data = self._resolve_standard_library(selection.field.selections)
+                    value = self._resolve_standard_library(
+                        selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(f"\"{selection.field.name}\":{data}")
+            items.append(_format_item(selection.field.name, value))
 
         return f"{{\"data\":{_format_object(items)}}}"
