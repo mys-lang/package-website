@@ -26,9 +26,9 @@ class GraphQL:
         self._database = database
         self._statistics = statistics
 
-    func _handle_graphql_package(self,
-                                 arguments: [Argument],
-                                 selections: [Selection]) -> string:
+    func _resolve_package(self,
+                          arguments: [Argument],
+                          selections: [Selection]) -> string:
         if arguments is None or selections is None:
             raise RequestError("Bad package.")
 
@@ -64,7 +64,7 @@ class GraphQL:
                 case "number_of_downloads":
                     value = str(package.number_of_downloads)
                 case "latest_release":
-                    value = self._handle_graphql_package_latest_release(
+                    value = self._resolve_package_latest_release(
                         package.latest_release,
                         selection.field.selections)
                 case _ as name:
@@ -74,9 +74,9 @@ class GraphQL:
 
         return _format_object(items)
 
-    func _handle_graphql_package_latest_release(self,
-                                                release: Release,
-                                                selections: [Selection]) -> string:
+    func _resolve_package_latest_release(self,
+                                         release: Release,
+                                         selections: [Selection]) -> string:
         if selections is None:
             raise RequestError("Bad package latest release.")
 
@@ -97,7 +97,7 @@ class GraphQL:
 
         return _format_object(items)
 
-    func _handle_graphql_standard_library(self, selections: [Selection]) -> string:
+    func _resolve_standard_library(self, selections: [Selection]) -> string:
         if selections is None:
             raise RequestError("Bad standard_library.")
 
@@ -108,10 +108,10 @@ class GraphQL:
 
             match selection.field.name:
                 case "package":
-                    value = self._handle_graphql_package(selection.field.arguments,
-                                                         selection.field.selections)
+                    value = self._resolve_package(selection.field.arguments,
+                                                  selection.field.selections)
                 case "packages":
-                    value = self._handle_graphql_packages()
+                    value = self._resolve_packages()
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
@@ -119,7 +119,7 @@ class GraphQL:
 
         return _format_object(items)
 
-    func _handle_graphql_statistics(self, selections: [Selection]) -> string:
+    func _resolve_statistics(self, selections: [Selection]) -> string:
         if selections is None:
             raise RequestError("Bad statistics request.")
 
@@ -149,14 +149,14 @@ class GraphQL:
 
         return _format_object(items)
 
-    func _handle_graphql_packages(self) -> string:
+    func _resolve_packages(self) -> string:
         response = "["
         response += ",".join([f"\"{name}\"" for name in self._database.get_packages()])
         response += "]"
 
         return response
 
-    func handle_request(self, document: Document) -> string:
+    func resolve_request(self, document: Document) -> string:
         if len(document.definitions) == 0:
             raise RequestError("No definition.")
 
@@ -172,11 +172,9 @@ class GraphQL:
 
             match selection.field.name:
                 case "statistics":
-                    data = self._handle_graphql_statistics(
-                        selection.field.selections)
+                    data = self._resolve_statistics(selection.field.selections)
                 case "standard_library":
-                    data = self._handle_graphql_standard_library(
-                        selection.field.selections)
+                    data = self._resolve_standard_library(selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
