@@ -11,6 +11,13 @@ from .statistics import Statistics
 class RequestError(Error):
     message: string
 
+func _format_object(items: [string]) -> string:
+    response = "{"
+    response += ",".join(items)
+    response += "}"
+
+    return response
+
 class GraphQL:
     _database: Database
     _statistics: Statistics
@@ -22,8 +29,6 @@ class GraphQL:
     func _handle_graphql_package(self,
                                  arguments: [Argument],
                                  selections: [Selection]) -> string:
-        items: [string] = []
-
         if arguments is None or selections is None:
             raise RequestError("Bad package.")
 
@@ -39,6 +44,8 @@ class GraphQL:
 
         if package is None:
             raise RequestError(f"Package '{argument.value}' not found.")
+
+        items: [string] = []
 
         for selection in selections:
             value: string = None
@@ -65,19 +72,15 @@ class GraphQL:
 
             items.append(f"\"{selection.field.name}\":{value}")
 
-        response = "{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
+        return _format_object(items)
 
     func _handle_graphql_package_latest_release(self,
                                                 release: Release,
                                                 selections: [Selection]) -> string:
-        items: [string] = []
-
         if selections is None:
             raise RequestError("Bad package latest release.")
+
+        items: [string] = []
 
         for selection in selections:
             value: string = None
@@ -92,17 +95,13 @@ class GraphQL:
 
             items.append(f"\"{selection.field.name}\":{value}")
 
-        response = "{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
+        return _format_object(items)
 
     func _handle_graphql_standard_library(self, selections: [Selection]) -> string:
-        items: [string] = []
-
         if selections is None:
             raise RequestError("Bad standard_library.")
+
+        items: [string] = []
 
         for selection in selections:
             value: string = None
@@ -118,17 +117,13 @@ class GraphQL:
 
             items.append(f"\"{selection.field.name}\":{value}")
 
-        response = "\"standard_library\":{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
+        return _format_object(items)
 
     func _handle_graphql_statistics(self, selections: [Selection]) -> string:
-        items: [string] = []
-
         if selections is None:
             raise RequestError("Bad statistics request.")
+
+        items: [string] = []
 
         for selection in selections:
             value: string = None
@@ -152,11 +147,7 @@ class GraphQL:
 
             items.append(f"\"{selection.field.name}\":{value}")
 
-        response = "\"statistics\":{"
-        response += ",".join(items)
-        response += "}"
-
-        return response
+        return _format_object(items)
 
     func _handle_graphql_packages(self) -> string:
         response = "["
@@ -174,7 +165,6 @@ class GraphQL:
                       .executable_definition
                       .operation_definition
                       .selections)
-        response = "{\"data\":{"
         items: [string] = []
 
         for selection in selections:
@@ -190,9 +180,6 @@ class GraphQL:
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(data)
+            items.append(f"\"{selection.field.name}\":{data}")
 
-        response += ",".join(items)
-        response += "}}"
-
-        return response
+        return f"{{\"data\":{_format_object(items)}}}"
