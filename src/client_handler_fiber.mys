@@ -667,7 +667,7 @@ class ClientHandlerFiber(Fiber):
             else:
                 decoded = json_decode(string(content)).get("query").get_string()
                 document = graphql_parse(decoded)
-                response = self._graphql.resolve_request(document)
+                response = self._graphql.resolve_query(document)
         except Error as error:
             message = str(error).replace("\"", "'")
             response = f"{{\"errors\":[{{\"message\":\"{message}\"}}]}}"

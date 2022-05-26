@@ -159,7 +159,7 @@ class GraphQL:
 
         return response
 
-    func resolve_request(self, document: Document) -> string:
+    func resolve_query(self, document: Document) -> string:
         if len(document.definitions) == 0:
             raise RequestError("No definition.")
 
