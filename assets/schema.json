@@ -129,7 +129,7 @@
 					"fields": [
 						{
 							"name": "name",
-							"description": "",
+							"description": null,
 							"args": [],
 							"type": {
 								"kind": "NON_NULL",
