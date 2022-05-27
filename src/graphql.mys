@@ -12,15 +12,44 @@ from .statistics import Statistics
 class RequestError(Error):
     message: string
 
-func _format_item(name: string, value: string) -> string:
-    return f"\"{name}\":{value}"
+class Response:
+    _parts: [string]
 
-func _format_object(items: [string]) -> string:
-    response = "{"
-    response += ",".join(items)
-    response += "}"
+    func __init__(self):
+        self._parts = []
 
-    return response
+    func format(self) -> string:
+        return "".join(self._parts)
+
+    func object_begin(self):
+        self._parts.append("{")
+
+    func object_end(self):
+        if self._parts[-1] == ",":
+            self._parts[-1] = "}"
+        else:
+            self._parts.append("}")
+
+    func object_append_key(self, key: string):
+        self._parts.append(f"\"{key}\":")
+
+    func list_begin(self):
+        self._parts.append("[")
+
+    func list_end(self):
+        if self._parts[-1] == ",":
+            self._parts[-1] = "]"
+        else:
+            self._parts.append("]")
+
+    func append(self, value: string):
+        self._parts.append(value)
+
+    func append_string(self, value: string):
+        self._parts.append(f"\"{value}\"")
+
+    func append_comma(self):
+        self._parts.append(",")
 
 class GraphQL:
     _database: Database
@@ -31,8 +60,9 @@ class GraphQL:
         self._statistics = statistics
 
     func _resolve_package_type(self,
+                               response: Response,
                                package_name: string,
-                               selections: [Selection]) -> string:
+                               selections: [Selection]):
         if selections is None:
             raise RequestError("Bad package.")
 
@@ -41,14 +71,14 @@ class GraphQL:
         if package is None:
             raise RequestError(f"Package '{package_name}' not found.")
 
-        items: [string] = []
+        response.object_begin()
 
         for selection in selections:
-            value: string = None
+            response.object_append_key(selection.field.name)
 
             match selection.field.name:
                 case "name":
-                    value = f"\"{package.name}\""
+                    response.append_string(package.name)
                 case "builds":
                     match package.builds:
                         case "yes":
@@ -57,8 +87,10 @@ class GraphQL:
                             value = "false"
                         case _:
                             value = "null"
+
+                    response.append(value)
                 case "number_of_downloads":
-                    value = str(package.number_of_downloads)
+                    response.append(str(package.number_of_downloads))
                 case "coverage":
                     total_path = self._database.make_path(
                         f"standard-library/{package_name}/coverage/total.txt")
@@ -67,20 +99,24 @@ class GraphQL:
                         value = total_path.read_text().strip()
                     except Error:
                         value = "null"
+
+                    response.append(value)
                 case "latest_release":
-                    value = self._resolve_package_latest_release(
+                    self._resolve_package_latest_release(
+                        response,
                         package.latest_release,
                         selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(_format_item(selection.field.name, value))
+            response.append_comma()
 
-        return _format_object(items)
+        response.object_end()
 
     func _resolve_package(self,
+                          response: Response,
                           arguments: [Argument],
-                          selections: [Selection]) -> string:
+                          selections: [Selection]):
         if arguments is None:
             raise RequestError("Bad package.")
 
@@ -92,106 +128,110 @@ class GraphQL:
         if argument.value is None:
             raise RequestError("No package name value.")
 
-        return self._resolve_package_type(argument.value, selections)
+        self._resolve_package_type(response, argument.value, selections)
 
     func _resolve_package_latest_release(self,
+                                         response: Response,
                                          release: Release,
-                                         selections: [Selection]) -> string:
+                                         selections: [Selection]):
         if selections is None:
             raise RequestError("Bad package latest release.")
 
-        items: [string] = []
+        response.object_begin()
 
         for selection in selections:
-            value: string = None
+            response.object_append_key(selection.field.name)
 
             match selection.field.name:
                 case "version":
-                    value = f"\"{release.version}\""
+                    response.append_string(release.version)
                 case "description":
-                    value = f"\"{release.description}\""
+                    response.append_string(release.description)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(_format_item(selection.field.name, value))
+            response.append_comma()
 
-        return _format_object(items)
+        response.object_end()
 
-    func _resolve_standard_library(self, selections: [Selection]) -> string:
+    func _resolve_standard_library(self, response: Response, selections: [Selection]):
         if selections is None:
             raise RequestError("Bad standard_library.")
 
-        items: [string] = []
+        response.object_begin()
 
         for selection in selections:
-            value: string = None
+            response.object_append_key(selection.field.name)
 
             match selection.field.name:
                 case "package":
-                    value = self._resolve_package(selection.field.arguments,
-                                                  selection.field.selections)
+                    self._resolve_package(response,
+                                          selection.field.arguments,
+                                          selection.field.selections)
                 case "packages":
-                    value = self._resolve_packages(selection.field.selections)
+                    self._resolve_packages(response, selection.field.selections)
                 case "number_of_packages":
-                    value = self._resolve_number_of_packages()
+                    self._resolve_number_of_packages(response)
                 case "number_of_downloads":
-                    value = self._resolve_number_of_downloads()
+                    self._resolve_number_of_downloads(response)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(_format_item(selection.field.name, value))
+            response.append_comma()
 
-        return _format_object(items)
+        response.object_end()
 
-    func _resolve_statistics(self, selections: [Selection]) -> string:
+    func _resolve_statistics(self, response: Response, selections: [Selection]):
         if selections is None:
             raise RequestError("Bad statistics request.")
 
-        items: [string] = []
+        response.object_begin()
 
         for selection in selections:
-            value: string = None
+            response.object_append_key(selection.field.name)
 
             match selection.field.name:
                 case "start_date_time":
-                    value = f"\"{self._statistics.start_date_time}\""
+                    response.append_string(
+                        str(self._statistics.start_date_time))
                 case "total_number_of_requests":
-                    value = str(sum([
-                        count
-                        for _, count in self._statistics.requests.count
-                    ]))
+                    response.append(
+                        str(sum([
+                            count
+                            for _, count in self._statistics.requests.count
+                        ])))
                 case "number_of_unique_visitors":
-                    value = str(len(self._statistics.clients_ip_addresses))
+                    response.append(
+                        str(len(self._statistics.clients_ip_addresses)))
                 case "number_of_graphql_requests":
-                    value = str(self._statistics.number_of_graphql_requests)
+                    response.append(
+                        str(self._statistics.number_of_graphql_requests))
                 case "no_idle_client_handlers":
-                    value = str(self._statistics.no_idle_client_handlers)
+                    response.append(
+                        str(self._statistics.no_idle_client_handlers))
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(_format_item(selection.field.name, value))
+            response.append_comma()
 
-        return _format_object(items)
+        response.object_end()
 
-    func _resolve_packages(self, selections: [Selection]) -> string:
+    func _resolve_packages(self, response: Response, selections: [Selection]):
         if selections is None:
             raise RequestError("Bad packages request.")
 
-        items: [string] = []
+        response.list_begin()
 
         for name in self._database.get_packages():
-            items.append(self._resolve_package_type(name, selections))
+            self._resolve_package_type(response, name, selections)
+            response.append_comma()
 
-        response = "["
-        response += ",".join(items)
-        response += "]"
+        response.list_end()
 
-        return response
+    func _resolve_number_of_packages(self, response: Response):
+        response.append(str(len(self._database.get_packages())))
 
-    func _resolve_number_of_packages(self) -> string:
-        return str(len(self._database.get_packages()))
-
-    func _resolve_number_of_downloads(self) -> string:
+    func _resolve_number_of_downloads(self, response: Response):
         number_of_downloads = 0
 
         for name in self._database.get_packages():
@@ -202,7 +242,7 @@ class GraphQL:
 
             number_of_downloads += package.number_of_downloads
 
-        return str(number_of_downloads)
+        response.append(str(number_of_downloads))
 
     func resolve_query(self, document: Document) -> string:
         if len(document.definitions) == 0:
@@ -213,20 +253,24 @@ class GraphQL:
                       .executable_definition
                       .operation_definition
                       .selections)
-        items: [string] = []
+        response = Response()
+        response.object_begin()
+        response.object_append_key("data")
+        response.object_begin()
 
         for selection in selections:
-            value: string = None
+            response.object_append_key(selection.field.name)
 
             match selection.field.name:
                 case "statistics":
-                    value = self._resolve_statistics(selection.field.selections)
+                    self._resolve_statistics(response, selection.field.selections)
                 case "standard_library":
-                    value = self._resolve_standard_library(
-                        selection.field.selections)
+                    self._resolve_standard_library(response,
+                                                   selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
-            items.append(_format_item(selection.field.name, value))
+        response.object_end()
+        response.object_end()
 
-        return f"{{\"data\":{_format_object(items)}}}"
+        return response.format()
