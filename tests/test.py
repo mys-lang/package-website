@@ -419,43 +419,57 @@ class GraphQLTest(TestCase):
         client = self.create_graphql_client()
 
         result = client.execute(
-            gql("{standard_library{number_of_packages number_of_downloads}}"))
+            gql("query MyQuery {"
+                "  standard_library {"
+                "    number_of_downloads"
+                "    number_of_packages"
+                "    package(name: \"graphql_b\") {"
+                "      builds"
+                "      coverage"
+                "      latest_release {"
+                "        version"
+                "        description"
+                "      }"
+                "      name"
+                "      number_of_downloads"
+                "    }"
+                "    packages {"
+                "      builds"
+                "      coverage"
+                "      latest_release {"
+                "        description"
+                "        version"
+                "      }"
+                "      name"
+                "      number_of_downloads"
+                "    }"
+                "  }"
+                "  statistics {"
+                "    no_idle_client_handlers"
+                "    number_of_graphql_requests"
+                "    number_of_unique_visitors"
+                "    start_date_time"
+                "    total_number_of_requests"
+                "  }"
+                "}"))
+
         standard_library = result['standard_library']
         self.assert_greater_equal(standard_library['number_of_packages'], 2)
         self.assert_greater_equal(standard_library['number_of_downloads'], 2)
 
-        result = client.execute(gql("{standard_library{packages{name}}}"))
-        packages = result['standard_library']['packages']
+        packages = standard_library['packages']
         package_names = [package['name']for package in packages]
         self.assert_in('graphql_a', package_names)
         self.assert_in('graphql_b', package_names)
 
-        result = client.execute(gql('{'
-                                    '  standard_library {'
-                                    '    package(name: "graphql_b") {'
-                                    '      name'
-                                    '      latest_release {'
-                                    '        version'
-                                    '      }'
-                                    '    }'
-                                    '  }'
-                                    '}'))
         package = result['standard_library']['package']
         self.assert_equal(package['name'], 'graphql_b')
         self.assert_equal(package['latest_release']['version'], '0.1.0')
 
-        result = client.execute(gql('{'
-                                    '  statistics {'
-                                    '    total_number_of_requests'
-                                    '    number_of_unique_visitors'
-                                    '    number_of_graphql_requests'
-                                    '    no_idle_client_handlers'
-                                    '  }'
-                                    '}'))
         statistics = result['statistics']
         self.assert_greater_equal(statistics['total_number_of_requests'], 0)
         self.assert_equal(statistics['number_of_unique_visitors'], 0)
-        self.assert_equal(statistics['number_of_graphql_requests'], 5)
+        self.assert_equal(statistics['number_of_graphql_requests'], 2)
         self.assert_equal(statistics['no_idle_client_handlers'], 0)
 
         with open('../assets/schema.graphql', 'r') as fin:
