@@ -1077,6 +1077,7 @@ class ClientHandlerFiber(Fiber):
             raise
 
         self.write_response(Status.Ok, data=response_data.to_utf8())
+        self._activities.add(f"Mys version {version} released!")
 
     func handle_static_file(self, request: Request):
         match request.method:
