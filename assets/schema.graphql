@@ -1,32 +1,32 @@
 type Query {
-    standard_library: StandardLibrary!
-    statistics: Statistics!
+  standard_library: StandardLibrary!
+  statistics: Statistics!
 }
 
 type StandardLibrary {
-    package(name: String!): Package!
-    packages: [Package!]
-    number_of_packages: Int
-    number_of_downloads: Int
+  package(name: String!): Package!
+  packages: [Package!]
+  number_of_packages: Int
+  number_of_downloads: Int
 }
 
 type Package {
-    name: String!
-    latest_release: Release!
-    number_of_downloads: Int!
-    builds: Boolean
-    coverage: Float
+  name: String!
+  latest_release: Release!
+  number_of_downloads: Int!
+  builds: Boolean
+  coverage: Float
 }
 
 type Release {
-    version: String!
-    description: String!
+  version: String!
+  description: String!
 }
 
 type Statistics {
-    start_date_time: String!
-    total_number_of_requests: Int!
-    number_of_unique_visitors: Int!
-    number_of_graphql_requests: Int!
-    no_idle_client_handlers: Int!
+  start_date_time: String!
+  total_number_of_requests: Int!
+  number_of_unique_visitors: Int!
+  number_of_graphql_requests: Int!
+  no_idle_client_handlers: Int!
 }

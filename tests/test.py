@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 import sys
 import shutil
@@ -9,8 +7,11 @@ import subprocess
 import systest
 import logging
 import threading
-from gql import gql, Client
+
+from gql import gql
+from gql import Client
 from gql.transport.aiohttp import AIOHTTPTransport
+from graphql import print_schema
 
 LOGGER = logging.getLogger(__name__)
 
@@ -457,6 +458,8 @@ class GraphQLTest(TestCase):
         self.assert_equal(statistics['number_of_graphql_requests'], 5)
         self.assert_equal(statistics['no_idle_client_handlers'], 0)
 
+        with open('../assets/schema.graphql', 'r') as fin:
+            self.assert_equal(print_schema(client.schema) + '\n', fin.read())
 
 class StatisticsTest(TestCase):
 
