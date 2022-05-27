@@ -20,8 +20,6 @@ jobs:
     - name: Test
       run: |
         mys test
-        mys build
-        make test
 
   release:
     needs: [linux]

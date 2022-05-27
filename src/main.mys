@@ -2,6 +2,9 @@ from argparse import Parser
 from argparse import ValueType
 from fiber import Event
 from os.path import Path
+from os.subprocess import run
+from os.signal import enable as enable_signal
+from os.signal import Signal
 from net.tcp.server import Server
 from .database import Database
 from .graphql import GraphQL
@@ -9,6 +12,8 @@ from .statistics import Statistics
 from .client_handler_fiber import ClientHandlerFiber
 
 func main(argv: [string]):
+    enable_signal(Signal.Interrupt)
+
     parser = Parser(version=__version__)
     parser.add_option("--port",
                       short="-p",
@@ -49,12 +54,20 @@ func main(argv: [string]):
 
     print(f"Listening for clients on port {port}.")
 
-    while True:
-        if len(idle_client_handlers) == 0:
-            statistics.no_idle_client_handlers += 1
-            idle_client_handlers_ready.clear()
-            idle_client_handlers_ready.wait()
+    try:
+        while True:
+            if len(idle_client_handlers) == 0:
+                statistics.no_idle_client_handlers += 1
+                idle_client_handlers_ready.clear()
+                idle_client_handlers_ready.wait()
 
-        client = server.accept()
-        client_handler = client_handlers[idle_client_handlers.pop()]
-        client_handler.serve_client(client)
+            client = server.accept()
+            client_handler = client_handlers[idle_client_handlers.pop()]
+            client_handler.serve_client(client)
+    except InterruptError:
+        print("Interrupted. Exiting.")
+
+@test
+func test_application():
+    assert run("mys build -c").exit_code == 0
+    assert run("cd test && python3 test.py").exit_code == 0
