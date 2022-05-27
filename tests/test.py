@@ -303,7 +303,7 @@ class UpdateBuildResultsTest(TestCase):
         shutil.rmtree('stdall', ignore_errors=True)
         self.subprocess_run([
             sys.executable,
-            '../scripts/update_standard_library_build_results.py',
+            'update_standard_library_build_results.py',
             '--url', BASE_URL
         ])
 

@@ -32,4 +32,4 @@ jobs:
         mongodb-version: '5.0'
     - name: Test
       run: |
-        python scripts/update_standard_library_build_results.py -j $(nproc)
+        python tests/update_standard_library_build_results.py -j $(nproc)

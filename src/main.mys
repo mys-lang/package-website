@@ -70,4 +70,6 @@ func main(argv: [string]):
 @test
 func test_application():
     assert run("mys build -c").exit_code == 0
-    assert run("cd tests && python3 test.py").exit_code == 0
+    result = run("cd tests && python3 test.py")
+    print(string(result.stderr))
+    assert result.exit_code == 0
