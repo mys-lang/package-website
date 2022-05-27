@@ -6,6 +6,8 @@ type Query {
 type StandardLibrary {
     package(name: String!): Package!
     packages: [Package!]
+    number_of_packages: Int
+    number_of_downloads: Int
 }
 
 type Package {

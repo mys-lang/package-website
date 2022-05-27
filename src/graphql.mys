@@ -132,6 +132,10 @@ class GraphQL:
                                                   selection.field.selections)
                 case "packages":
                     value = self._resolve_packages(selection.field.selections)
+                case "number_of_packages":
+                    value = self._resolve_number_of_packages()
+                case "number_of_downloads":
+                    value = self._resolve_number_of_downloads()
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
@@ -183,6 +187,22 @@ class GraphQL:
         response += "]"
 
         return response
+
+    func _resolve_number_of_packages(self) -> string:
+        return str(len(self._database.get_packages()))
+
+    func _resolve_number_of_downloads(self) -> string:
+        number_of_downloads = 0
+
+        for name in self._database.get_packages():
+            package = self._database.get_package(name)
+
+            if package is None:
+                continue
+
+            number_of_downloads += package.number_of_downloads
+
+        return str(number_of_downloads)
 
     func resolve_query(self, document: Document) -> string:
         if len(document.definitions) == 0:
