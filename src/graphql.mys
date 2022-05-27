@@ -270,6 +270,8 @@ class GraphQL:
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
+            response.append_comma()
+
         response.object_end()
         response.object_end()
 
