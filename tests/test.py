@@ -159,6 +159,7 @@ class PackageTest(TestCase):
         self.subprocess_run(["mys", "new", "foo"])
 
         package_list_item = '<a href="/package/foo/latest/index.html">foo</a>'
+        package_activity_message = 'Package foo version 0.1.0 released!'
 
         # Package page does not exist.
         response = self.http_get("/package/foo/0.1.0/index.html")
@@ -170,6 +171,10 @@ class PackageTest(TestCase):
         response = self.http_get("/standard-library.html")
         self.assert_equal(response.status_code, 200)
         self.assert_not_in(package_list_item, response.text)
+
+        response = self.http_get("/activity.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_not_in(package_activity_message, response.text)
 
         # Download when not present.
         response = self.http_get("/package/foo-0.1.0.tar.gz")
@@ -203,6 +208,10 @@ class PackageTest(TestCase):
         response = self.http_get("/standard-library.html")
         self.assert_equal(response.status_code, 200)
         self.assert_in(package_list_item, response.text)
+
+        response = self.http_get("/activity.html")
+        self.assert_equal(response.status_code, 200)
+        self.assert_in(package_activity_message, response.text)
 
         # Upload the package again without a token.
         with self.assert_raises(subprocess.CalledProcessError):

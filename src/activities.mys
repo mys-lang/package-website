@@ -1,0 +1,20 @@
+from time import LocalDateTime
+
+class Activity:
+    date: string
+    message: string
+
+class Activities:
+    _activities: [Activity]
+
+    func __init__(self):
+        self._activities = []
+
+    func add(self, message: string):
+        self._activities.insert(0, Activity(str(LocalDateTime()), message))
+
+        if len(self._activities) > 50:
+            self._activities.pop()
+
+    func recent(self) -> [Activity]:
+        return self._activities

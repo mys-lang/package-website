@@ -21,9 +21,11 @@ from .database import Database
 from .database import Release
 from .graphql import GraphQL
 from .statistics import Statistics
+from .activities import Activities
 
 RE_MYS_VERSION_STANDARD_LIBRARY: regex = (
     re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
+RE_MYS_VERSION_ACTIVITY: regex = re"^/\d+\.\d+\.\d+[\w-]*/activity.html"
 RE_MYS_VERSION_STATISTICS: regex = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
 RE_MYS_VERSION_WORLD_SVG: regex = re"^/\d+\.\d+\.\d+[\w-]*/_images/world.svg"
 RE_MYS_VERSION: regex = re"^/\d+\.\d+\.\d+[\w-]*/"
@@ -164,11 +166,13 @@ class ClientHandlerFiber(Fiber):
     response_status: Status
     _buffered_reader: BufferedReader
     _graphql: GraphQL
+    _activities: Activities
 
     func __init__(self,
                   database: Database,
                   statistics: Statistics,
                   graphql: GraphQL,
+                  activities: Activities,
                   idle_client_handlers: [i64],
                   idle_client_handlers_ready: Event,
                   index: i64):
@@ -184,6 +188,7 @@ class ClientHandlerFiber(Fiber):
         self.response_status = Status.Unknown
         self._buffered_reader = None
         self._graphql = graphql
+        self._activities = activities
 
     func create_root_directory(self):
         self.root_directory.rm(recursive=True, force=True)
@@ -229,6 +234,10 @@ class ClientHandlerFiber(Fiber):
 
         if path.match(RE_MYS_VERSION_STANDARD_LIBRARY) is not None:
             self.handle_mys_version_standard_library(request)
+            return
+
+        if path.match(RE_MYS_VERSION_ACTIVITY) is not None:
+            self.handle_mys_version_activity(request)
             return
 
         if path.match(RE_MYS_VERSION_STATISTICS) is not None:
@@ -277,6 +286,10 @@ class ClientHandlerFiber(Fiber):
 
         if path == "/standard-library.html":
             self.handle_mys_standard_library(request)
+            return
+
+        if path == "/activity.html":
+            self.handle_mys_activity(request)
             return
 
         if path == "/statistics.html":
@@ -425,6 +438,48 @@ class ClientHandlerFiber(Fiber):
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
+    func handle_mys_version_activity(self, request: Request):
+        match request.method:
+            case "GET":
+                path = self.database.make_path(request.path)
+
+                if path.exists():
+                    self.write_static_response_ok(path)
+                    row_index = 0
+                    activities = StringBuilder()
+                    activities += (
+                        "<table class=\"docutils align-default\">\n"
+                        "  <thead>\n"
+                        "    <tr class=\"row-odd\">\n"
+                        "      <th class=\"head\">Date</th>\n"
+                        "      <th class=\"head\">Message</th>\n"
+                        "    </tr>\n"
+                        "  </thead>\n"
+                        "  <tbody>\n")
+
+                    for activity in self._activities.recent():
+                        if (row_index % 2) == 0:
+                            activities += "    <tr class=\"row-even\">\n"
+                        else:
+                            activities += "    <tr class=\"row-odd\">\n"
+
+                        activities += f"      <td>{activity.date}</td>\n"
+                        activities += f"      <td>{activity.message}</td>\n"
+                        activities += "    </tr>\n"
+                        row_index += 1
+
+                    activities += ("  </tbody>\n"
+                                   "</table>\n")
+
+                    data = path.read_text()
+                    data = data.replace("<p>{website-activities}</p>",
+                                        activities.to_string())
+                    self.client.write(data.to_utf8())
+                else:
+                    self.write_response(Status.NotFound)
+            case _:
+                self.write_response(Status.MethodNotAllowed)
+
     func handle_mys_version(self, request: Request):
         match request.method:
             case "GET":
@@ -448,6 +503,15 @@ class ClientHandlerFiber(Fiber):
         if mys is not None:
             request.path = f"/{mys.latest_release.version}{request.path}"
             self.handle_mys_version_standard_library(request)
+        else:
+            self.write_response(Status.NotFound)
+
+    func handle_mys_activity(self, request: Request):
+        mys = self.database.get_mys()
+
+        if mys is not None:
+            request.path = f"/{mys.latest_release.version}{request.path}"
+            self.handle_mys_version_activity(request)
         else:
             self.write_response(Status.NotFound)
 
@@ -962,6 +1026,7 @@ class ClientHandlerFiber(Fiber):
         fiber_path.mv(database_path)
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
+        self._activities.add(f"Package {package_name} version {version} released!")
 
     func handle_mys_tar_gz(self, request: Request):
         database_path = self.database.make_path(request.path)
