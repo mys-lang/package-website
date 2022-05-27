@@ -736,7 +736,9 @@ class ClientHandlerFiber(Fiber):
             message = str(error).replace("\"", "'")
             response = f"{{\"errors\":[{{\"message\":\"{message}\"}}]}}"
 
-        self.write_response(Status.Ok, data=response.to_utf8())
+        self.write_response(Status.Ok,
+                            headers={"Content-Type": "application/json"},
+                            data=response.to_utf8())
 
     func handle_graphql(self, request: Request):
         match request.method:
