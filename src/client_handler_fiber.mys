@@ -1026,7 +1026,8 @@ class ClientHandlerFiber(Fiber):
         fiber_path.mv(database_path)
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
-        self._activities.add(f"Package {package_name} version {version} released!")
+        self._activities.add(
+            f"Package {package_name} version {version} released! 🎉🎉🎉")
 
     func handle_mys_tar_gz(self, request: Request):
         database_path = self.database.make_path(request.path)
@@ -1077,7 +1078,7 @@ class ClientHandlerFiber(Fiber):
             raise
 
         self.write_response(Status.Ok, data=response_data.to_utf8())
-        self._activities.add(f"Mys version {version} released!")
+        self._activities.add(f"Mys version {version} released! 🔥🔥🔥")
 
     func handle_static_file(self, request: Request):
         match request.method:
