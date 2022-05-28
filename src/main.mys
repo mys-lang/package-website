@@ -72,7 +72,7 @@ func main(argv: [string]):
     except InterruptError:
         print("Interrupted. Exiting.")
 
-    activities.add("🛫", "Website stopped.")
+    activities.add("🛬", "Website stopped.")
     activities.save()
 
 @test
