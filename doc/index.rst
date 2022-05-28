@@ -48,6 +48,7 @@ Nginx terminates SSL/TLS.
     server {
         listen 80 http2;
         server_name mys-lang.org;
+        client_max_body_size 50M;
         gzip on;
         gzip_types image/svg+xml application/javascript text/css text/html;
 
@@ -56,6 +57,17 @@ Nginx terminates SSL/TLS.
         }
 
         location / {
+            if ($request_method ~* "(GET|POST)") {
+              add_header "Access-Control-Allow-Origin"  *;
+            }
+
+            if ($request_method = OPTIONS) {
+              add_header "Access-Control-Allow-Origin"  *;
+              add_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS, HEAD";
+              add_header "Access-Control-Allow-Headers" *; #"Authorization, Origin, X-Requested-With, Content-Type, Accept";
+              return 200;
+            }
+
             proxy_pass          http://localhost:8000/;
             proxy_http_version  1.1;
             proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
@@ -118,6 +130,7 @@ Systemd service
    User=mys
    ExecStart=/home/mys/.local/bin/website -d /home/mys/database [-i <ipinfo-token>]
    WorkingDirectory=/home/mys
+   KillSignal=SIGINT
 
    [Install]
    WantedBy=multi-user.target
