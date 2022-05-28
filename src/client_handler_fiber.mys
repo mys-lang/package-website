@@ -79,8 +79,7 @@ func make_package_link(message: string) -> string:
 
     return " ".join(parts)
 
-func create_request_table(name: string, requests: {string: i64}) -> (string, i64):
-    total_number_of_requests = 0
+func create_request_table(name: string, requests: {string: i64}) -> string:
     row_index = 0
     builder = StringBuilder()
     builder += (
@@ -98,8 +97,6 @@ func create_request_table(name: string, requests: {string: i64}) -> (string, i64
     )
 
     for path, count in requests:
-        total_number_of_requests += count
-
         if (row_index % 2) == 0:
             builder += "    <tr class=\"row-even\">\n"
         else:
@@ -115,7 +112,7 @@ func create_request_table(name: string, requests: {string: i64}) -> (string, i64
         "</table>\n"
     )
 
-    return builder.to_string(), total_number_of_requests
+    return builder.to_string()
 
 SORT_TABLE_JS: string = """\
 <script>
@@ -535,9 +532,8 @@ class ClientHandlerFiber(Fiber):
                 path = self.database.make_path(request.path)
 
                 if path.exists():
-                    requests, total_number_of_requests = create_request_table(
-                        "requestsTable",
-                        self.statistics.requests.count)
+                    requests = create_request_table("requestsTable",
+                                                    self.statistics.requests.count)
                     row_index = 0
                     referrers = StringBuilder()
                     referrers += (
@@ -572,7 +568,7 @@ class ClientHandlerFiber(Fiber):
                     data = data.replace("{website-start-date-time}",
                                         str(self.statistics.start_date_time))
                     data = data.replace("{website-number-of-requests}",
-                                        str(total_number_of_requests))
+                                        str(self.statistics.number_of_requests))
                     data = data.replace("<p>{website-requests}</p>", requests)
                     data = data.replace(
                         "{website-number-of-unique-visitors}",
@@ -827,6 +823,7 @@ class ClientHandlerFiber(Fiber):
                     release_database_path.rm(force=True)
 
                 self.write_response(Status.Ok)
+                self._activities.add("🪦", f"Package {package_name} deleted.")
             case _:
                 self.write_response(Status.MethodNotAllowed)
 
@@ -836,7 +833,8 @@ class ClientHandlerFiber(Fiber):
         package = self.database.get_package(package_name)
 
         if package is not None:
-            request.path = request.path.replace("latest", package.latest_release.version)
+            request.path = request.path.replace("latest",
+                                                package.latest_release.version)
             self.handle_mys_version(request)
         else:
             self.write_response(Status.NotFound)
@@ -1040,7 +1038,7 @@ class ClientHandlerFiber(Fiber):
             raise
 
         if created:
-            self._activities.add("✨", f"Package {package_name} created!")
+            self._activities.add("✨", f"Package {package_name} created.")
 
         database_path = self.database.make_path(path)
         database_path.rm(force=True)
@@ -1049,7 +1047,7 @@ class ClientHandlerFiber(Fiber):
         self.write_response(Status.Ok, data=response_data.to_utf8())
         self._activities.add(
             "📦",
-            f"Package {package_name} version {version} released!")
+            f"Package {package_name} version {version} released.")
 
     func handle_mys_tar_gz(self, request: Request):
         database_path = self.database.make_path(request.path)
@@ -1100,7 +1098,7 @@ class ClientHandlerFiber(Fiber):
             raise
 
         self.write_response(Status.Ok, data=response_data.to_utf8())
-        self._activities.add("🐭", f"Mys version {version} released!")
+        self._activities.add("🐭", f"Mys version {version} released.")
 
     func handle_static_file(self, request: Request):
         match request.method:

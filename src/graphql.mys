@@ -207,10 +207,7 @@ class GraphQL:
                         str(self._statistics.start_date_time))
                 case "total_number_of_requests":
                     response.append(
-                        str(sum([
-                            count
-                            for _, count in self._statistics.requests.count
-                        ])))
+                        str(self._statistics.number_of_requests))
                 case "number_of_unique_visitors":
                     response.append(
                         str(len(self._statistics.clients_ip_addresses)))

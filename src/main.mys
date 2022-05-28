@@ -32,8 +32,8 @@ func main(argv: [string]):
     args = parser.parse(argv)
 
     database = Database(Path(args.value_of("--database-directory")))
-    statistics = Statistics(args.value_of("--ipinfo-token"))
     activities = Activities(database)
+    statistics = Statistics(args.value_of("--ipinfo-token"), activities)
     graphql = GraphQL(database, statistics, activities)
 
     client_handlers: [ClientHandlerFiber] = []

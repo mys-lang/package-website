@@ -45,17 +45,21 @@ func test_restart():
 
     # First boot.
     activities = Activities(database)
-    activities.add("X", "First!")
-    activities.add("X", "Second!")
+    activities.add("📦", "First!")
+    activities.add("📦", "Second!")
     recent = activities.recent()
+    assert recent[0].kind == "📦"
     assert recent[0].message == "Second!"
+    assert recent[1].kind == "📦"
     assert recent[1].message == "First!"
     activities.save()
 
     # Second boot.
     activities = Activities(database)
     recent = activities.recent()
+    assert recent[0].kind == "📦"
     assert recent[0].message == "Second!"
+    assert recent[1].kind == "📦"
     assert recent[1].message == "First!"
 
 @test

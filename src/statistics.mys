@@ -7,6 +7,7 @@ from json import Value as JsonValue
 from time import LocalDateTime
 from collections.fifo import Fifo
 from . import Status
+from .activities import Activities
 
 RE_LOCATION: regex = re"^([\d.-]+),([\d.-]+)$"
 RE_BOT: regex = re"bot"i
@@ -88,16 +89,22 @@ class OrderedCounter:
 class Statistics:
     start_date_time: LocalDateTime
     requests: OrderedCounter
+    number_of_requests: i64
+    next_number_of_requests_activity: i64
     locations: {string: Location}
     clients_ip_addresses: {string}
     client_ip_lookup_fiber: _ClientIpLookupFiber
     referrers: OrderedCounter
     no_idle_client_handlers: i64
     number_of_graphql_requests: i64
+    activities: Activities
 
-    func __init__(self, ipinfo_token: string):
+    func __init__(self, ipinfo_token: string, activities: Activities):
+        self.activities = activities
         self.start_date_time = LocalDateTime()
         self.requests = OrderedCounter()
+        self.number_of_requests = 0
+        self.next_number_of_requests_activity = 10
         self.locations = {}
         self.clients_ip_addresses = {}
         self.referrers = OrderedCounter()
@@ -122,6 +129,7 @@ class Statistics:
             return
 
         self.requests.increment(path)
+        self.increment_number_of_requests()
         referrer = headers.get("referer", None)
 
         if referrer is not None:
@@ -137,6 +145,13 @@ class Statistics:
             self.client_ip_lookup_fiber.queue.put((client_ip_address,
                                                    i64(response_status)))
 
+    func increment_number_of_requests(self):
+        self.number_of_requests += 1
+
+        if self.number_of_requests == self.next_number_of_requests_activity:
+            self.activities.add("🔥", f"{self.number_of_requests} requests served.")
+            self.next_number_of_requests_activity *= 10
+
     func unique_clients(self) -> string:
         count = len(self.clients_ip_addresses)
 
@@ -147,7 +162,7 @@ class Statistics:
 
 @test
 func test_bot_user_agent():
-    statistics = Statistics(None)
+    statistics = Statistics(None, None)
 
     statistics.handle_request(
         Request("GET",
