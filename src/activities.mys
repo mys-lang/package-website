@@ -1,14 +1,26 @@
 from time import LocalDateTime
+from .database import Database
 
 class Activity:
     date: string
     message: string
 
 class Activities:
+    _database: Database
     _activities: [Activity]
 
-    func __init__(self):
+    func __init__(self, database: Database):
+        self._database = database
         self._activities = []
+
+        for date, message in self._database.get_activities():
+            self._activities.insert(0, Activity(date, message))
+
+    func save(self):
+        self._database.clear_activities()
+
+        for activity in self._activities:
+            self._database.add_activity(activity.date, activity.message)
 
     func add(self, message: string):
         self._activities.insert(0, Activity(str(LocalDateTime()), message))

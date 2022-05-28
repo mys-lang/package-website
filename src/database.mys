@@ -48,6 +48,9 @@ class Database:
     _get_dependents: Statement
     _remove_dependents: Statement
     _add_dependent: Statement
+    _clear_activities: Statement
+    _add_activity: Statement
+    _get_activities: Statement
     root_directory: Path
     _lock: Lock
 
@@ -86,6 +89,10 @@ class Database:
                                "name TEXT NOT NULL,"
                                "user TEXT NOT NULL,"
                                "UNIQUE(name, user)"
+                               ")")
+        self._database.execute("CREATE TABLE IF NOT EXISTS activities("
+                               "date TEXT NOT NULL,"
+                               "message TEXT NOT NULL"
                                ")")
 
         statement = self._database.prepare("SELECT COUNT(*) FROM packages")
@@ -135,6 +142,12 @@ class Database:
             "DELETE FROM dependents WHERE user == ?")
         self._add_dependent = self._database.prepare(
             "INSERT INTO dependents (name, user) VALUES (?, ?)")
+        self._clear_activities = self._database.prepare(
+            "DELETE FROM activities")
+        self._add_activity = self._database.prepare(
+            "INSERT INTO activities (date, message) VALUES(?, ?)")
+        self._get_activities = self._database.prepare(
+            "SELECT * FROM activities")
 
         self.make_path("package").mkdir(exists_ok=True)
 
@@ -309,3 +322,20 @@ class Database:
             dependents.append(self._get_dependents.column_string(0))
 
         return dependents
+
+    func clear_activities(self):
+        self._clear_activities.execute()
+
+    func add_activity(self, date: string, message: string):
+        self._add_activity.bind_string(1, date)
+        self._add_activity.bind_string(2, message)
+        self._add_activity.execute()
+
+    func get_activities(self) -> [(string, string)]:
+        activities = []
+
+        while self._get_activities.fetch():
+            activities.append((self._get_activities.column_string(0),
+                               self._get_activities.column_string(1)))
+
+        return activities
