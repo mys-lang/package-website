@@ -1,6 +1,7 @@
 type Query {
   standard_library: StandardLibrary!
   statistics: Statistics!
+  activities: [Activity!]!
 }
 
 type StandardLibrary {
@@ -29,4 +30,10 @@ type Statistics {
   number_of_unique_visitors: Int!
   number_of_graphql_requests: Int!
   no_idle_client_handlers: Int!
+}
+
+type Activity {
+  date: String!
+  kind: String!
+  message: String!
 }

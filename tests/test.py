@@ -462,6 +462,11 @@ class GraphQLTest(TestCase):
                 "    start_date_time"
                 "    total_number_of_requests"
                 "  }"
+                "  activities {"
+                "    date"
+                "    kind"
+                "    message"
+                "  }"
                 "}"))
 
         standard_library = result['standard_library']
@@ -482,6 +487,19 @@ class GraphQLTest(TestCase):
         self.assert_equal(statistics['number_of_unique_visitors'], 0)
         self.assert_equal(statistics['number_of_graphql_requests'], 2)
         self.assert_equal(statistics['no_idle_client_handlers'], 0)
+
+        activities = result['activities']
+        self.assert_in('date', activities[0])
+        kinds = [activity['kind'] for activity in activities]
+        self.assert_in("✨", kinds)
+        self.assert_in("📦", kinds)
+        self.assert_in("🐭", kinds)
+        messages = [
+            activity['message']
+            for activity in activities
+            if activity['kind'] == "📦"
+        ]
+        self.assert_in("Package ", messages[0])
 
         with open('../assets/schema.graphql', 'r') as fin:
             self.assert_equal(print_schema(client.schema) + '\n', fin.read())

@@ -33,8 +33,8 @@ func main(argv: [string]):
 
     database = Database(Path(args.value_of("--database-directory")))
     statistics = Statistics(args.value_of("--ipinfo-token"))
-    graphql = GraphQL(database, statistics)
     activities = Activities(database)
+    graphql = GraphQL(database, statistics, activities)
 
     client_handlers: [ClientHandlerFiber] = []
     idle_client_handlers: [i64] = []

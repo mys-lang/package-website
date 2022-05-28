@@ -8,6 +8,8 @@ from .database import Database
 from .database import Release
 from .database import Package
 from .statistics import Statistics
+from .activities import Activities
+from .activities import Activity
 
 class RequestError(Error):
     message: string
@@ -54,10 +56,15 @@ class Response:
 class GraphQL:
     _database: Database
     _statistics: Statistics
+    _activities: Activities
 
-    func __init__(self, database: Database, statistics: Statistics):
+    func __init__(self,
+                  database: Database,
+                  statistics: Statistics,
+                  activities: Activities):
         self._database = database
         self._statistics = statistics
+        self._activities = activities
 
     func _get_package(self, name: string) -> Package:
         package = self._database.get_package(name)
@@ -220,6 +227,41 @@ class GraphQL:
 
         response.object_end()
 
+    func _resolve_activities(self, response: Response, selections: [Selection]):
+        response.list_begin()
+
+        for activity in self._activities.recent():
+            self._resolve_activity_type(response, activity, selections)
+            response.append_comma()
+
+        response.list_end()
+
+    func _resolve_activity_type(self,
+                                response: Response,
+                                activity: Activity,
+                                selections: [Selection]):
+        if selections is None:
+            raise RequestError("Bad activity.")
+
+        response.object_begin()
+
+        for selection in selections:
+            response.object_append_key(selection.field.name)
+
+            match selection.field.name:
+                case "date":
+                    response.append_string(activity.date)
+                case "kind":
+                    response.append_string(activity.kind)
+                case "message":
+                    response.append_string(activity.message)
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            response.append_comma()
+
+        response.object_end()
+
     func _resolve_packages(self, response: Response, selections: [Selection]):
         if selections is None:
             raise RequestError("Bad packages request.")
@@ -266,6 +308,8 @@ class GraphQL:
                 case "standard_library":
                     self._resolve_standard_library(response,
                                                    selection.field.selections)
+                case "activities":
+                    self._resolve_activities(response, selection.field.selections)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 
