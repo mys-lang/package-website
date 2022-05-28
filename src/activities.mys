@@ -1,3 +1,4 @@
+from os.path import Path
 from time import LocalDateTime
 from .database import Database
 
@@ -14,7 +15,7 @@ class Activities:
         self._activities = []
 
         for date, message in self._database.get_activities():
-            self._activities.insert(0, Activity(date, message))
+            self._activities.append(Activity(date, message))
 
     func save(self):
         self._database.clear_activities()
@@ -30,3 +31,22 @@ class Activities:
 
     func recent(self) -> [Activity]:
         return self._activities
+
+@test
+func test_restart():
+    database = Database(Path(":memory:"))
+
+    # First boot.
+    activities = Activities(database)
+    activities.add("First!")
+    activities.add("Second!")
+    recent = activities.recent()
+    assert recent[0].message == "Second!"
+    assert recent[1].message == "First!"
+    activities.save()
+
+    # Second boot.
+    activities = Activities(database)
+    recent = activities.recent()
+    assert recent[0].message == "Second!"
+    assert recent[1].message == "First!"
