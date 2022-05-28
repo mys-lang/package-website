@@ -475,7 +475,7 @@ class ClientHandlerFiber(Fiber):
                             case _:
                                 message = activity.message
 
-                        activities += f"      <td>{message}</td>\n"
+                        activities += f"      <td>{activity.kind} {message}</td>\n"
                         activities += "    </tr>\n"
                         row_index += 1
 
