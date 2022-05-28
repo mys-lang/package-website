@@ -159,7 +159,9 @@ class PackageTest(TestCase):
         self.subprocess_run(["mys", "new", "foo"])
 
         package_list_item = '<a href="/package/foo/latest/index.html">foo</a>'
-        package_activity_message = 'Package foo version 0.1.0 released!'
+        package_activity_message = (
+            'Package <a href="/package/foo/latest/index.html">foo</a> '
+            'version 0.1.0 released!')
 
         # Package page does not exist.
         response = self.http_get("/package/foo/0.1.0/index.html")

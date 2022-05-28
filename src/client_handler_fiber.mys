@@ -1029,7 +1029,8 @@ class ClientHandlerFiber(Fiber):
         self.generate_package_documentation(package_name, version)
         self.write_response(Status.Ok, data=response_data.to_utf8())
         self._activities.add(
-            f"Package {package_name} version {version} released! 🎉🎉🎉")
+            f"Package <a href=\"/package/{package_name}/latest/index.html\">"
+            f"{package_name}</a> version {version} released! 🎉🎉🎉")
 
     func handle_mys_tar_gz(self, request: Request):
         database_path = self.database.make_path(request.path)
