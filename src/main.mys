@@ -58,7 +58,7 @@ func main(argv: [string]):
     print(f"Listening for clients on port {port}.")
 
     try:
-        activities.add("🛫", "Website started.")
+        activities.add("▶️", "Website started.")
 
         while True:
             if len(idle_client_handlers) == 0:
@@ -72,7 +72,7 @@ func main(argv: [string]):
     except InterruptError:
         print("Interrupted. Exiting.")
 
-    activities.add("🛬", "Website stopped.")
+    activities.add("⏹️", "Website stopped.")
     activities.save()
 
 @test
