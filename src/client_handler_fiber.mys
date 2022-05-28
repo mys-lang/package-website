@@ -452,7 +452,6 @@ class ClientHandlerFiber(Fiber):
                         "  <thead>\n"
                         "    <tr class=\"row-odd\">\n"
                         "      <th class=\"head\">Date</th>\n"
-                        "      <th class=\"head\">Kind</th>\n"
                         "      <th class=\"head\">Message</th>\n"
                         "    </tr>\n"
                         "  </thead>\n"
@@ -465,7 +464,6 @@ class ClientHandlerFiber(Fiber):
                             activities += "    <tr class=\"row-odd\">\n"
 
                         activities += f"      <td>{activity.date}</td>\n"
-                        activities += f"      <td>{activity.kind}</td>\n"
                         activities += f"      <td>{activity.message}</td>\n"
                         activities += "    </tr>\n"
                         row_index += 1
