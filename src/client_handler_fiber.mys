@@ -72,6 +72,13 @@ func builds_to_emoji(result: string) -> string:
         case _:
             return "🤔"
 
+func make_package_link(message: string) -> string:
+    parts = message.split(" ")
+    name = parts[1]
+    parts[1] = f"<a href=\"/package/{name}/latest/index.html\">{name}</a>"
+
+    return " ".join(parts)
+
 func create_request_table(name: string, requests: {string: i64}) -> (string, i64):
     total_number_of_requests = 0
     row_index = 0
@@ -464,7 +471,14 @@ class ClientHandlerFiber(Fiber):
                             activities += "    <tr class=\"row-odd\">\n"
 
                         activities += f"      <td>{activity.date}</td>\n"
-                        activities += f"      <td>{activity.message}</td>\n"
+
+                        match activity.kind:
+                            case "📦":
+                                message = make_package_link(activity.message)
+                            case _:
+                                message = activity.message
+
+                        activities += f"      <td>{message}</td>\n"
                         activities += "    </tr>\n"
                         row_index += 1
 
@@ -990,6 +1004,7 @@ class ClientHandlerFiber(Fiber):
 
         self.database.begin_transaction()
         response_data = ""
+        created = False
 
         try:
             package = self.database.get_package(package_name)
@@ -998,6 +1013,7 @@ class ClientHandlerFiber(Fiber):
                 self.database.create_package(package_name, create_token())
                 package = self.database.get_package(package_name)
                 response_data = f"{{\"token\": \"{package.token}\"}}"
+                created = True
             elif not self.validate_token(params, package.token):
                 self.database.rollback_transaction()
                 return
@@ -1023,6 +1039,9 @@ class ClientHandlerFiber(Fiber):
             self.database.rollback_transaction()
             raise
 
+        if created:
+            self._activities.add("✨", f"Package {package_name} created!")
+
         database_path = self.database.make_path(path)
         database_path.rm(force=True)
         fiber_path.mv(database_path)
@@ -1030,8 +1049,7 @@ class ClientHandlerFiber(Fiber):
         self.write_response(Status.Ok, data=response_data.to_utf8())
         self._activities.add(
             "📦",
-            f"Package <a href=\"/package/{package_name}/latest/index.html\">"
-            f"{package_name}</a> version {version} released!")
+            f"Package {package_name} version {version} released!")
 
     func handle_mys_tar_gz(self, request: Request):
         database_path = self.database.make_path(request.path)
