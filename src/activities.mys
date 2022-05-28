@@ -50,3 +50,15 @@ func test_restart():
     recent = activities.recent()
     assert recent[0].message == "Second!"
     assert recent[1].message == "First!"
+
+@test
+func test_drop_old_activity():
+    database = Database(Path(":memory:"))
+    activities = Activities(database)
+
+    for i in range(100):
+        activities.add(str(i))
+
+    recent = activities.recent()
+    assert recent[0].message == "99"
+    assert recent[-1].message == "50"
