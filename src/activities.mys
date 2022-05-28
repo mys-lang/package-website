@@ -4,6 +4,7 @@ from .database import Database
 
 class Activity:
     date: string
+    kind: string
     message: string
 
 class Activities:
@@ -14,17 +15,17 @@ class Activities:
         self._database = database
         self._activities = []
 
-        for date, message in self._database.get_activities():
-            self._activities.append(Activity(date, message))
+        for date, kind, message in self._database.get_activities():
+            self._activities.append(Activity(date, kind, message))
 
     func save(self):
         self._database.clear_activities()
 
         for activity in self._activities:
-            self._database.add_activity(activity.date, activity.message)
+            self._database.add_activity(activity.date, activity.kind, activity.message)
 
-    func add(self, message: string):
-        self._activities.insert(0, Activity(str(LocalDateTime()), message))
+    func add(self, kind: string, message: string):
+        self._activities.insert(0, Activity(str(LocalDateTime()), kind, message))
 
         if len(self._activities) > 50:
             self._activities.pop()
@@ -32,14 +33,20 @@ class Activities:
     func recent(self) -> [Activity]:
         return self._activities
 
+func _create_database() -> Database:
+    path = Path("test-database")
+    path.rm(force=True)
+
+    return Database(path)
+
 @test
 func test_restart():
-    database = Database(Path(":memory:"))
+    database = _create_database()
 
     # First boot.
     activities = Activities(database)
-    activities.add("First!")
-    activities.add("Second!")
+    activities.add("X", "First!")
+    activities.add("X", "Second!")
     recent = activities.recent()
     assert recent[0].message == "Second!"
     assert recent[1].message == "First!"
@@ -53,12 +60,14 @@ func test_restart():
 
 @test
 func test_drop_old_activity():
-    database = Database(Path(":memory:"))
+    database = _create_database()
     activities = Activities(database)
 
     for i in range(100):
-        activities.add(str(i))
+        activities.add(str(i), str(2 * i))
 
     recent = activities.recent()
-    assert recent[0].message == "99"
-    assert recent[-1].message == "50"
+    assert recent[0].kind == "99"
+    assert recent[0].message == "198"
+    assert recent[-1].kind == "50"
+    assert recent[-1].message == "100"

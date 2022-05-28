@@ -92,6 +92,7 @@ class Database:
                                ")")
         self._database.execute("CREATE TABLE IF NOT EXISTS activities("
                                "date TEXT NOT NULL,"
+                               "kind TEXT NOT NULL,"
                                "message TEXT NOT NULL"
                                ")")
 
@@ -145,7 +146,7 @@ class Database:
         self._clear_activities = self._database.prepare(
             "DELETE FROM activities")
         self._add_activity = self._database.prepare(
-            "INSERT INTO activities (date, message) VALUES(?, ?)")
+            "INSERT INTO activities (date, kind, message) VALUES(?, ?, ?)")
         self._get_activities = self._database.prepare(
             "SELECT * FROM activities")
 
@@ -326,16 +327,18 @@ class Database:
     func clear_activities(self):
         self._clear_activities.execute()
 
-    func add_activity(self, date: string, message: string):
+    func add_activity(self, date: string, kind: string, message: string):
         self._add_activity.bind_string(1, date)
-        self._add_activity.bind_string(2, message)
+        self._add_activity.bind_string(2, kind)
+        self._add_activity.bind_string(3, message)
         self._add_activity.execute()
 
-    func get_activities(self) -> [(string, string)]:
+    func get_activities(self) -> [(string, string, string)]:
         activities = []
 
         while self._get_activities.fetch():
             activities.append((self._get_activities.column_string(0),
-                               self._get_activities.column_string(1)))
+                               self._get_activities.column_string(1),
+                               self._get_activities.column_string(2)))
 
         return activities
