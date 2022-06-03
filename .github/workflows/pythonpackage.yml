@@ -15,6 +15,8 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -qq cloc -y
         python -m pip install --upgrade pip
         pip install mys systest pexpect requests html5lib ansi2html gql[all]
     - name: Test
