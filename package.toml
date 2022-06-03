@@ -1,6 +1,6 @@
 [package]
 name = "website"
-version = "0.91.0"
+version = "0.92.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "The Mys programming language website."
 
