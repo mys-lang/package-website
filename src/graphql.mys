@@ -4,6 +4,8 @@ from graphql import OperationDefinition
 from graphql import Field
 from graphql import Selection
 from graphql import Argument
+from json import decode as json_decode
+from json import Value as JsonValue
 from .database import Database
 from .database import Release
 from .database import Package
@@ -112,6 +114,11 @@ class GraphQL:
                         value = "null"
 
                     response.append(value)
+                case "lines_of_code":
+                    self._resolve_package_lines_of_code(
+                        response,
+                        package_name,
+                        selection.field.selections)
                 case "latest_release":
                     self._resolve_package_latest_release(
                         response,
@@ -158,6 +165,120 @@ class GraphQL:
                     response.append_string(release.version)
                 case "description":
                     response.append_string(release.description)
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            response.append_comma()
+
+        response.object_end()
+
+    func _resolve_package_lines_of_code(self,
+                                        response: Response,
+                                        package_name: string,
+                                        selections: [Selection]):
+        if selections is None:
+            raise RequestError("Bad package lines of code.")
+
+        lines_of_code_path = self._database.make_path(
+            f"package/{package_name}/lines_of_code.json")
+
+        try:
+            lines_of_code = json_decode(lines_of_code_path.read_text())
+        except Error:
+            response.append("null")
+            return
+
+        response.object_begin()
+
+        for selection in selections:
+            response.object_append_key(selection.field.name)
+
+            match selection.field.name:
+                case "languages":
+                    self._resolve_package_lines_of_code_languages(
+                        response,
+                        selection.field.selections,
+                        lines_of_code)
+                case "total":
+                    self._resolve_package_lines_of_code_total(
+                        response,
+                        selection.field.selections,
+                        lines_of_code)
+                case _ as name:
+                    raise RequestError(f"Bad field '{name}'.")
+
+            response.append_comma()
+
+        response.object_end()
+
+    func _resolve_package_lines_of_code_languages(self,
+                                                  response: Response,
+                                                  selections: [Selection],
+                                                  lines_of_code: JsonValue):
+        if selections is None:
+            raise RequestError("Bad package lines of code.")
+
+        response.list_begin()
+
+        for language, data in lines_of_code.get_object():
+            if language in ["header", "SUM"]:
+                continue
+
+            response.object_begin()
+
+            for selection in selections:
+                response.object_append_key(selection.field.name)
+
+                match selection.field.name:
+                    case "name":
+                        response.append_string(language)
+                    case "data":
+                        self._resolve_package_lines_of_code_data(
+                            response,
+                            selection.field.selections,
+                            data)
+                    case _ as name:
+                        raise RequestError(f"Bad field '{name}'.")
+
+                response.append_comma()
+
+            response.object_end()
+            response.append_comma()
+
+        response.list_end()
+
+    func _resolve_package_lines_of_code_total(self,
+                                              response: Response,
+                                              selections: [Selection],
+                                              lines_of_code: JsonValue):
+        if selections is None:
+            raise RequestError("Bad package lines of code.")
+
+        self._resolve_package_lines_of_code_data(response,
+                                                 selections,
+                                                 lines_of_code.get("SUM"))
+
+    func _resolve_package_lines_of_code_data(self,
+                                             response: Response,
+                                             selections: [Selection],
+                                             data: JsonValue):
+        if selections is None:
+            raise RequestError("Bad package lines of code data.")
+
+        response.object_begin()
+
+        for selection in selections:
+            response.object_append_key(selection.field.name)
+
+            match selection.field.name:
+                case "files":
+                    response.append(str(data.get("nFiles").get_integer()))
+                case "blank":
+                    response.append(str(data.get("blank").get_integer()))
+                case "comment":
+                    response.append(str(data.get("comment").get_integer()))
+                case "code":
+                    response.append(str(data.get("code").get_integer()))
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 

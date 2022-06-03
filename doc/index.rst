@@ -50,7 +50,7 @@ Nginx terminates SSL/TLS.
         server_name mys-lang.org;
         client_max_body_size 50M;
         gzip on;
-        gzip_types image/svg+xml application/javascript text/css text/html;
+        gzip_types image/svg+xml application/javascript application/json text/css text/html;
 
         location ^~ /.well-known/acme-challenge/ {
             root /var/www/mys-lang.org;

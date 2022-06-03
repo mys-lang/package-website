@@ -876,6 +876,19 @@ class ClientHandlerFiber(Fiber):
             data = b"<html>No package documentation found!</html>"
             database_doc_path.join("index.html").write_binary(data)
 
+    func generate_package_lines_of_code(self, package_name: string):
+        lines_of_code_path = self.database.make_path(
+            f"package/{package_name}/lines_of_code.json")
+
+        try:
+            result = run(f"cloc "
+                         f"--read-lang-def={__assets__}/cloc_definitions.txt "
+                         f"--json "
+                         f"{self.root_directory}")
+            lines_of_code_path.write_binary(result.stdout)
+        except OsError:
+            pass
+
     func handle_package_tar_gz(self, request: Request, package_name: string):
         match request.method:
             case "GET":
@@ -1044,6 +1057,7 @@ class ClientHandlerFiber(Fiber):
         database_path.rm(force=True)
         fiber_path.mv(database_path)
         self.generate_package_documentation(package_name, version)
+        self.generate_package_lines_of_code(package_name)
         self.write_response(Status.Ok, data=response_data.to_utf8())
         self._activities.add(
             "📦",

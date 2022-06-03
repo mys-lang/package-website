@@ -443,6 +443,23 @@ class GraphQLTest(TestCase):
                 "      }"
                 "      name"
                 "      number_of_downloads"
+                "      lines_of_code {"
+                "        languages {"
+                "          name"
+                "          data {"
+                "            files"
+                "            blank"
+                "            comment"
+                "            code"
+                "          }"
+                "        }"
+                "        total {"
+                "          files"
+                "          blank"
+                "          comment"
+                "          code"
+                "        }"
+                "      }"
                 "    }"
                 "    packages {"
                 "      builds"
@@ -481,6 +498,17 @@ class GraphQLTest(TestCase):
         package = result['standard_library']['package']
         self.assert_equal(package['name'], 'graphql_b')
         self.assert_equal(package['latest_release']['version'], '0.1.0')
+        languages = package['lines_of_code']['languages']
+        self.assert_greater_equal(languages[0]['data']['files'], 1)
+        self.assert_greater_equal(languages[0]['data']['blank'], 1)
+        self.assert_greater_equal(languages[0]['data']['comment'], 1)
+        self.assert_greater_equal(languages[0]['data']['code'], 1)
+        self.assert_greater_equal(languages[1]['data']['files'], 1)
+        total = package['lines_of_code']['total']
+        self.assert_greater_equal(total['files'], 1)
+        self.assert_greater_equal(total['blank'], 1)
+        self.assert_greater_equal(total['comment'], 1)
+        self.assert_greater_equal(total['code'], 1)
 
         statistics = result['statistics']
         self.assert_greater_equal(statistics['total_number_of_requests'], 0)

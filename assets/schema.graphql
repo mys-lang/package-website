@@ -17,6 +17,24 @@ type Package {
   number_of_downloads: Int!
   builds: Boolean
   coverage: Float
+  lines_of_code: LinesOfCode
+}
+
+type LinesOfCode {
+  languages: [LinesOfCodeLanguage!]!
+  total: LinesOfCodeData!
+}
+
+type LinesOfCodeLanguage {
+  name: String!
+  data: LinesOfCodeData!
+}
+
+type LinesOfCodeData {
+  files: Int!
+  blank: Int!
+  comment: Int!
+  code: Int!
 }
 
 type Release {
