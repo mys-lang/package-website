@@ -431,19 +431,19 @@ class GraphQLTest(TestCase):
 
         result = client.execute(
             gql("query MyQuery {"
-                "  standard_library {"
-                "    number_of_downloads"
-                "    number_of_packages"
+                "  standardLibrary {"
+                "    numberOfDownloads"
+                "    numberOfPackages"
                 "    package(name: \"graphql_b\") {"
                 "      builds"
                 "      coverage"
-                "      latest_release {"
+                "      latestRelease {"
                 "        version"
                 "        description"
                 "      }"
                 "      name"
-                "      number_of_downloads"
-                "      lines_of_code {"
+                "      numberOfDownloads"
+                "      linesOfCode {"
                 "        languages {"
                 "          name"
                 "          data {"
@@ -464,20 +464,20 @@ class GraphQLTest(TestCase):
                 "    packages {"
                 "      builds"
                 "      coverage"
-                "      latest_release {"
+                "      latestRelease {"
                 "        description"
                 "        version"
                 "      }"
                 "      name"
-                "      number_of_downloads"
+                "      numberOfDownloads"
                 "    }"
                 "  }"
                 "  statistics {"
-                "    no_idle_client_handlers"
-                "    number_of_graphql_requests"
-                "    number_of_unique_visitors"
-                "    start_date_time"
-                "    total_number_of_requests"
+                "    noIdleClientHandlers"
+                "    numberOfGraphqlRequests"
+                "    numberOfUniqueVisitors"
+                "    startDateTime"
+                "    totalNumberOfRequests"
                 "  }"
                 "  activities {"
                 "    date"
@@ -486,35 +486,35 @@ class GraphQLTest(TestCase):
                 "  }"
                 "}"))
 
-        standard_library = result['standard_library']
-        self.assert_greater_equal(standard_library['number_of_packages'], 2)
-        self.assert_greater_equal(standard_library['number_of_downloads'], 2)
+        standard_library = result['standardLibrary']
+        self.assert_greater_equal(standard_library['numberOfPackages'], 2)
+        self.assert_greater_equal(standard_library['numberOfDownloads'], 2)
 
         packages = standard_library['packages']
         package_names = [package['name']for package in packages]
         self.assert_in('graphql_a', package_names)
         self.assert_in('graphql_b', package_names)
 
-        package = result['standard_library']['package']
+        package = result['standardLibrary']['package']
         self.assert_equal(package['name'], 'graphql_b')
-        self.assert_equal(package['latest_release']['version'], '0.1.0')
-        languages = package['lines_of_code']['languages']
+        self.assert_equal(package['latestRelease']['version'], '0.1.0')
+        languages = package['linesOfCode']['languages']
         self.assert_greater_equal(languages[0]['data']['files'], 1)
         self.assert_greater_equal(languages[0]['data']['blank'], 1)
         self.assert_greater_equal(languages[0]['data']['comment'], 1)
         self.assert_greater_equal(languages[0]['data']['code'], 1)
         self.assert_greater_equal(languages[1]['data']['files'], 1)
-        total = package['lines_of_code']['total']
+        total = package['linesOfCode']['total']
         self.assert_greater_equal(total['files'], 1)
         self.assert_greater_equal(total['blank'], 1)
         self.assert_greater_equal(total['comment'], 1)
         self.assert_greater_equal(total['code'], 1)
 
         statistics = result['statistics']
-        self.assert_greater_equal(statistics['total_number_of_requests'], 0)
-        self.assert_equal(statistics['number_of_unique_visitors'], 0)
-        self.assert_equal(statistics['number_of_graphql_requests'], 2)
-        self.assert_equal(statistics['no_idle_client_handlers'], 0)
+        self.assert_greater_equal(statistics['totalNumberOfRequests'], 0)
+        self.assert_equal(statistics['numberOfUniqueVisitors'], 0)
+        self.assert_equal(statistics['numberOfGraphqlRequests'], 2)
+        self.assert_equal(statistics['noIdleClientHandlers'], 0)
 
         activities = result['activities']
         self.assert_in('date', activities[0])

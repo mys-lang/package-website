@@ -102,7 +102,7 @@ class GraphQL:
                             value = "null"
 
                     response.append(value)
-                case "number_of_downloads":
+                case "numberOfDownloads":
                     response.append(str(package.number_of_downloads))
                 case "coverage":
                     total_path = self._database.make_path(
@@ -114,12 +114,12 @@ class GraphQL:
                         value = "null"
 
                     response.append(value)
-                case "lines_of_code":
+                case "linesOfCode":
                     self._resolve_package_lines_of_code(
                         response,
                         package_name,
                         selection.field.selections)
-                case "latest_release":
+                case "latestRelease":
                     self._resolve_package_latest_release(
                         response,
                         package.latest_release,
@@ -302,9 +302,9 @@ class GraphQL:
                                           selection.field.selections)
                 case "packages":
                     self._resolve_packages(response, selection.field.selections)
-                case "number_of_packages":
+                case "numberOfPackages":
                     self._resolve_number_of_packages(response)
-                case "number_of_downloads":
+                case "numberOfDownloads":
                     self._resolve_number_of_downloads(response)
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
@@ -323,19 +323,19 @@ class GraphQL:
             response.object_append_key(selection.field.name)
 
             match selection.field.name:
-                case "start_date_time":
+                case "startDateTime":
                     response.append_string(
                         str(self._statistics.start_date_time))
-                case "total_number_of_requests":
+                case "totalNumberOfRequests":
                     response.append(
                         str(self._statistics.number_of_requests))
-                case "number_of_unique_visitors":
+                case "numberOfUniqueVisitors":
                     response.append(
                         str(len(self._statistics.clients_ip_addresses)))
-                case "number_of_graphql_requests":
+                case "numberOfGraphqlRequests":
                     response.append(
                         str(self._statistics.number_of_graphql_requests))
-                case "no_idle_client_handlers":
+                case "noIdleClientHandlers":
                     response.append(
                         str(self._statistics.no_idle_client_handlers))
                 case _ as name:
@@ -423,7 +423,7 @@ class GraphQL:
             match selection.field.name:
                 case "statistics":
                     self._resolve_statistics(response, selection.field.selections)
-                case "standard_library":
+                case "standardLibrary":
                     self._resolve_standard_library(response,
                                                    selection.field.selections)
                 case "activities":

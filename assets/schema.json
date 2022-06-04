@@ -13,7 +13,7 @@
 					"description": null,
 					"fields": [
 						{
-							"name": "standard_library",
+							"name": "standardLibrary",
 							"description": null,
 							"args": [],
 							"type": {
@@ -131,7 +131,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "number_of_packages",
+							"name": "numberOfPackages",
 							"description": null,
 							"args": [],
 							"type": {
@@ -143,7 +143,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "number_of_downloads",
+							"name": "numberOfDownloads",
 							"description": null,
 							"args": [],
 							"type": {
@@ -202,7 +202,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "latest_release",
+							"name": "latestRelease",
 							"description": null,
 							"args": [],
 							"type": {
@@ -218,7 +218,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "number_of_downloads",
+							"name": "numberOfDownloads",
 							"description": null,
 							"args": [],
 							"type": {
@@ -258,7 +258,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "lines_of_code",
+							"name": "linesOfCode",
 							"description": null,
 							"args": [],
 							"type": {
@@ -513,7 +513,7 @@
 					"description": null,
 					"fields": [
 						{
-							"name": "start_date_time",
+							"name": "startDateTime",
 							"description": null,
 							"args": [],
 							"type": {
@@ -529,7 +529,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "total_number_of_requests",
+							"name": "totalNumberOfRequests",
 							"description": null,
 							"args": [],
 							"type": {
@@ -545,7 +545,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "number_of_unique_visitors",
+							"name": "numberOfUniqueVisitors",
 							"description": null,
 							"args": [],
 							"type": {
@@ -561,7 +561,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "number_of_graphql_requests",
+							"name": "numberOfGraphqlRequests",
 							"description": null,
 							"args": [],
 							"type": {
@@ -577,7 +577,7 @@
 							"deprecationReason": null
 						},
 						{
-							"name": "no_idle_client_handlers",
+							"name": "noIdleClientHandlers",
 							"description": null,
 							"args": [],
 							"type": {

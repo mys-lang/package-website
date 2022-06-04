@@ -1,5 +1,5 @@
 type Query {
-  standard_library: StandardLibrary!
+  standardLibrary: StandardLibrary!
   statistics: Statistics!
   activities: [Activity!]!
 }
@@ -7,17 +7,17 @@ type Query {
 type StandardLibrary {
   package(name: String!): Package!
   packages: [Package!]
-  number_of_packages: Int
-  number_of_downloads: Int
+  numberOfPackages: Int
+  numberOfDownloads: Int
 }
 
 type Package {
   name: String!
-  latest_release: Release!
-  number_of_downloads: Int!
+  latestRelease: Release!
+  numberOfDownloads: Int!
   builds: Boolean
   coverage: Float
-  lines_of_code: LinesOfCode
+  linesOfCode: LinesOfCode
 }
 
 type LinesOfCode {
@@ -43,11 +43,11 @@ type Release {
 }
 
 type Statistics {
-  start_date_time: String!
-  total_number_of_requests: Int!
-  number_of_unique_visitors: Int!
-  number_of_graphql_requests: Int!
-  no_idle_client_handlers: Int!
+  startDateTime: String!
+  totalNumberOfRequests: Int!
+  numberOfUniqueVisitors: Int!
+  numberOfGraphqlRequests: Int!
+  noIdleClientHandlers: Int!
 }
 
 type Activity {
