@@ -163,9 +163,8 @@ class ClientHandlerFiber(Fiber):
     statistics: Statistics
     event: Event
     client: Client
-    idle_client_handlers: [i64]
+    idle_client_handlers: [ClientHandlerFiber]
     idle_client_handlers_ready: Event
-    index: i64
     root_directory: Path
     response_status: Status
     _buffered_reader: BufferedReader
@@ -177,14 +176,13 @@ class ClientHandlerFiber(Fiber):
                   statistics: Statistics,
                   graphql: GraphQL,
                   activities: Activities,
-                  idle_client_handlers: [i64],
+                  idle_client_handlers: [ClientHandlerFiber],
                   idle_client_handlers_ready: Event,
                   index: i64):
         self.database = database
         self.statistics = statistics
         self.idle_client_handlers = idle_client_handlers
         self.idle_client_handlers_ready = idle_client_handlers_ready
-        self.index = index
         self.root_directory = Path(f".website/{index}")
         self.event = Event()
         self.client = None
@@ -214,7 +212,7 @@ class ClientHandlerFiber(Fiber):
                 print(e)
 
             self.client.disconnect()
-            self.idle_client_handlers.append(self.index)
+            self.idle_client_handlers.append(self)
             self.idle_client_handlers_ready.set()
 
     func make_path(self, path: string) -> Path:

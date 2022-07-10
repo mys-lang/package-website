@@ -36,20 +36,19 @@ func main(argv: [string]):
     statistics = Statistics(args.value_of("--ipinfo-token"), activities)
     graphql = GraphQL(database, statistics, activities)
 
-    client_handlers: [ClientHandlerFiber] = []
-    idle_client_handlers: [i64] = []
+    idle_client_handlers: [ClientHandlerFiber] = []
     idle_client_handlers_ready = Event()
 
     for i in range(20):
-        client_handlers.append(ClientHandlerFiber(database,
-                                                  statistics,
-                                                  graphql,
-                                                  activities,
-                                                  idle_client_handlers,
-                                                  idle_client_handlers_ready,
-                                                  i))
-        client_handlers[-1].start()
-        idle_client_handlers.append(i)
+        client_handler = ClientHandlerFiber(database,
+                                            statistics,
+                                            graphql,
+                                            activities,
+                                            idle_client_handlers,
+                                            idle_client_handlers_ready,
+                                            i)
+        client_handler.start()
+        idle_client_handlers.append(client_handler)
 
     server = Server()
     port = u32(args.value_of("--port"))
@@ -67,7 +66,7 @@ func main(argv: [string]):
                 idle_client_handlers_ready.wait()
 
             client = server.accept()
-            client_handler = client_handlers[idle_client_handlers.pop()]
+            client_handler = idle_client_handlers.pop()
             client_handler.serve_client(client)
     except InterruptError:
         print("Interrupted. Exiting.")
