@@ -4,9 +4,11 @@ build
 .mys-coverage.txt
 coverage/
 .website
-test/storage
-test/Mys_website.*
-test/deps_*
-test/foo/
-test/list_*
-test/logs/
+tests/storage
+tests/Mys_website.*
+tests/deps_*
+tests/foo
+tests/graphql_*
+tests/list_*
+tests/logs
+test-database
