@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -qq libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libsdl2-image-dev -y
+        sudo apt-get install -qq libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libsdl2-image-dev cloc -y
         python -m pip install --upgrade pip
         pip install mys requests html5lib ansi2html systest pexpect gql[all]
     - name: Start Redis
