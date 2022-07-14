@@ -39,8 +39,7 @@ func _create_database() -> Database:
 
     return Database(path)
 
-@test
-func test_restart():
+test restart():
     database = _create_database()
 
     # First boot.
@@ -62,8 +61,7 @@ func test_restart():
     assert recent[1].kind == "📦"
     assert recent[1].message == "First!"
 
-@test
-func test_drop_old_activity():
+test drop_old_activity():
     database = _create_database()
     activities = Activities(database)
 

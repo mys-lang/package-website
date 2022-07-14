@@ -160,8 +160,7 @@ class Statistics:
         else:
             return f"{count} (capped)"
 
-@test
-func test_bot_user_agent():
+test bot_user_agent():
     statistics = Statistics(None, None)
 
     statistics.handle_request(
