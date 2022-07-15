@@ -347,7 +347,7 @@ class ClientHandlerFiber(Fiber):
             return
 
         try:
-            request = parse_request(header, u64(header.length()))
+            request = parse_request(header, header.length())
         except HttpError:
             self.write_response(Status.BadRequest)
             return
@@ -942,7 +942,7 @@ class ClientHandlerFiber(Fiber):
             self.write_response(Status.Continue)
 
         if content_length > 0:
-            data = self._buffered_reader.read(u64(content_length))
+            data = self._buffered_reader.read(content_length)
 
             if data.length() != content_length:
                 self.write_response(Status.BadRequest)

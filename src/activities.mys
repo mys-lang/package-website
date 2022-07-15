@@ -27,7 +27,7 @@ class Activities:
     func add(self, kind: string, message: string):
         self._activities.insert(0, Activity(str(LocalDateTime()), kind, message))
 
-        if len(self._activities) > 50:
+        if self._activities.length() > 50:
             self._activities.pop()
 
     func recent(self) -> [Activity]:
