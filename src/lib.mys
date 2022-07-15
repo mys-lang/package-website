@@ -3,8 +3,7 @@ from random.crypto import randbytes
 func create_token() -> string:
     return randbytes(32).to_hex()
 
-@enum
-class Status:
+enum Status:
     Continue = 100
     Ok = 200
     Found = 302
