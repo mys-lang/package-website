@@ -75,7 +75,5 @@ func main(argv: [string]):
     activities.save()
 
 test application():
-    assert run("mys build -c").exit_code == 0
-    result = run("cd tests && python3 test.py")
-    print(string(result.stderr))
-    assert result.exit_code == 0
+    run("mys build -c")
+    run("cd tests && python3 test.py", capture_output=False)
