@@ -347,7 +347,7 @@ class ClientHandlerFiber(Fiber):
             return
 
         try:
-            request = parse_request(header, len(header))
+            request = parse_request(header, u64(header.length()))
         except HttpError:
             self.write_response(Status.BadRequest)
             return
@@ -705,7 +705,7 @@ class ClientHandlerFiber(Fiber):
                 else:
                     dependents = self.database.get_dependents(package_name)
 
-                    if len(dependents) > 0:
+                    if dependents.length() > 0:
                         dependents.append("")
 
                     self.write_response(Status.Ok,
@@ -927,9 +927,9 @@ class ClientHandlerFiber(Fiber):
             self.write_response(Status.NotFound)
 
     func read_post_content(self,
-                          max_size: u64,
+                          max_size: i64,
                           headers: {string: string}) -> bytes:
-        content_length = u64(headers["content-length"])
+        content_length = i64(headers["content-length"])
 
         if content_length > max_size:
             self.write_response(Status.BadRequest)
@@ -942,9 +942,9 @@ class ClientHandlerFiber(Fiber):
             self.write_response(Status.Continue)
 
         if content_length > 0:
-            data = self._buffered_reader.read(content_length)
+            data = self._buffered_reader.read(u64(content_length))
 
-            if len(data) != content_length:
+            if data.length() != content_length:
                 self.write_response(Status.BadRequest)
 
                 return None
@@ -954,7 +954,7 @@ class ClientHandlerFiber(Fiber):
         return data
 
     func save_post_data_to_file(self,
-                               max_size: u64,
+                               max_size: i64,
                                headers: {string: string}) -> Path:
         content = self.read_post_content(max_size, headers)
 
@@ -1139,7 +1139,7 @@ class ClientHandlerFiber(Fiber):
         if data is None:
             self.client.write(b"\r\n")
         else:
-            self.client.write(f"Content-Length: {len(data)}\r\n\r\n".to_utf8())
+            self.client.write(f"Content-Length: {data.length()}\r\n\r\n".to_utf8())
             self.client.write(data)
 
     func write_static_response_ok(self, path: Path):

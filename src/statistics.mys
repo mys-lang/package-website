@@ -139,7 +139,7 @@ class Statistics:
         client_ip_address = headers.get("x-forwarded-for", None)
 
         if client_ip_address is not None:
-            if len(self.clients_ip_addresses) < 100:
+            if self.clients_ip_addresses.length() < 100:
                 self.clients_ip_addresses.add(client_ip_address)
 
             self.client_ip_lookup_fiber.queue.put((client_ip_address,
@@ -153,7 +153,7 @@ class Statistics:
             self.next_number_of_requests_activity *= 10
 
     func unique_clients(self) -> string:
-        count = len(self.clients_ip_addresses)
+        count = self.clients_ip_addresses.length()
 
         if count < 100:
             return str(count)
@@ -174,7 +174,7 @@ test bot_user_agent():
                                    "+http://www.bing.com/bingbot.htm)")
                 }),
                 Status.Ok)
-    assert len(statistics.requests.count) == 0
+    assert statistics.requests.count.length() == 0
 
     statistics.handle_request(
         Request("GET",
@@ -186,7 +186,7 @@ test bot_user_agent():
                     "user-agent": "Mozilla/5.0"
                 }),
         Status.Ok)
-    assert len(statistics.requests.count) == 1
+    assert statistics.requests.count.length() == 1
 
     statistics.handle_request(
         Request("GET",
@@ -197,4 +197,4 @@ test bot_user_agent():
                 {
                 }),
                 Status.Ok)
-    assert len(statistics.requests.count) == 1
+    assert statistics.requests.count.length() == 1
