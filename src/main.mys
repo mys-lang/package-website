@@ -51,7 +51,7 @@ func main(argv: [string]):
         idle_client_handlers.append(client_handler)
 
     server = Server()
-    port = u32(args.value_of("--port"))
+    port = i64(args.value_of("--port"))
     server.listen(port)
 
     print(f"Listening for clients on port {port}.")
