@@ -50,7 +50,7 @@ class _ClientIpLookupFiber(Fiber):
                                           f"/{client_ip_address}?token={self.token}",
                                           secure=False).content)
 
-                mo = json_decode(content).get("loc").get_string().match(RE_LOCATION)
+                mo = json_decode(content).get("loc").string().match(RE_LOCATION)
 
                 if mo is None:
                     continue

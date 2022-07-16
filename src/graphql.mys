@@ -220,7 +220,7 @@ class GraphQL:
 
         response.list_begin()
 
-        for language, data in lines_of_code.get_object():
+        for language, data in lines_of_code.object():
             if language in ["header", "SUM"]:
                 continue
 
@@ -272,13 +272,13 @@ class GraphQL:
 
             match selection.field.name:
                 case "files":
-                    response.append(str(data.get("nFiles").get_integer()))
+                    response.append(str(data.get("nFiles").integer()))
                 case "blank":
-                    response.append(str(data.get("blank").get_integer()))
+                    response.append(str(data.get("blank").integer()))
                 case "comment":
-                    response.append(str(data.get("comment").get_integer()))
+                    response.append(str(data.get("comment").integer()))
                 case "code":
-                    response.append(str(data.get("code").get_integer()))
+                    response.append(str(data.get("code").integer()))
                 case _ as name:
                     raise RequestError(f"Bad field '{name}'.")
 

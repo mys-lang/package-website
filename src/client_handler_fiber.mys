@@ -737,7 +737,7 @@ class ClientHandlerFiber(Fiber):
 
                 return
             else:
-                decoded = json_decode(string(content)).get("query").get_string()
+                decoded = json_decode(string(content)).get("query").string()
                 document = graphql_parse(decoded)
                 response = self._graphql.resolve_query(document)
         except Error as error:
@@ -999,11 +999,11 @@ class ClientHandlerFiber(Fiber):
             output_directory=self.root_directory)
         package_toml = self.make_path("package.toml").read_text()
         config = toml_decode(package_toml)
-        package_name = config.get("package").get("name").get_string()
-        version = config.get("package").get("version").get_string()
+        package_name = config.get("package").get("name").string()
+        version = config.get("package").get("version").string()
 
         try:
-            description = config.get("package").get("description").get_string()
+            description = config.get("package").get("description").string()
         except KeyError:
             description = "No description found."
 
@@ -1038,7 +1038,7 @@ class ClientHandlerFiber(Fiber):
             self.database.remove_dependents(package_name)
 
             try:
-                for dependency in config.get("dependencies").get_table().keys():
+                for dependency in config.get("dependencies").table().keys():
                     self.database.add_dependent(dependency, package_name)
             except KeyError:
                 pass
