@@ -79,7 +79,7 @@ class GraphQL:
     func _resolve_package_type(self,
                                response: Response,
                                package_name: string,
-                               selections: [Selection]):
+                               selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad package.")
 
@@ -133,8 +133,8 @@ class GraphQL:
 
     func _resolve_package(self,
                           response: Response,
-                          arguments: [Argument],
-                          selections: [Selection]):
+                          arguments: [Argument]?,
+                          selections: [Selection]?):
         if arguments is None:
             raise RequestError("Bad package.")
 
@@ -151,7 +151,7 @@ class GraphQL:
     func _resolve_package_latest_release(self,
                                          response: Response,
                                          release: Release,
-                                         selections: [Selection]):
+                                         selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad package latest release.")
 
@@ -175,7 +175,7 @@ class GraphQL:
     func _resolve_package_lines_of_code(self,
                                         response: Response,
                                         package_name: string,
-                                        selections: [Selection]):
+                                        selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad package lines of code.")
 
@@ -213,7 +213,7 @@ class GraphQL:
 
     func _resolve_package_lines_of_code_languages(self,
                                                   response: Response,
-                                                  selections: [Selection],
+                                                  selections: [Selection]?,
                                                   lines_of_code: JsonValue):
         if selections is None:
             raise RequestError("Bad package lines of code.")
@@ -249,7 +249,7 @@ class GraphQL:
 
     func _resolve_package_lines_of_code_total(self,
                                               response: Response,
-                                              selections: [Selection],
+                                              selections: [Selection]?,
                                               lines_of_code: JsonValue):
         if selections is None:
             raise RequestError("Bad package lines of code.")
@@ -260,7 +260,7 @@ class GraphQL:
 
     func _resolve_package_lines_of_code_data(self,
                                              response: Response,
-                                             selections: [Selection],
+                                             selections: [Selection]?,
                                              data: JsonValue):
         if selections is None:
             raise RequestError("Bad package lines of code data.")
@@ -286,7 +286,9 @@ class GraphQL:
 
         response.object_end()
 
-    func _resolve_standard_library(self, response: Response, selections: [Selection]):
+    func _resolve_standard_library(self,
+                                   response: Response,
+                                   selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad standard_library.")
 
@@ -313,7 +315,7 @@ class GraphQL:
 
         response.object_end()
 
-    func _resolve_statistics(self, response: Response, selections: [Selection]):
+    func _resolve_statistics(self, response: Response, selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad statistics request.")
 
@@ -357,7 +359,7 @@ class GraphQL:
     func _resolve_activity_type(self,
                                 response: Response,
                                 activity: Activity,
-                                selections: [Selection]):
+                                selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad activity.")
 
@@ -380,7 +382,7 @@ class GraphQL:
 
         response.object_end()
 
-    func _resolve_packages(self, response: Response, selections: [Selection]):
+    func _resolve_packages(self, response: Response, selections: [Selection]?):
         if selections is None:
             raise RequestError("Bad packages request.")
 
