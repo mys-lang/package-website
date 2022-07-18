@@ -197,7 +197,7 @@ class Database:
         self._set_package_builds.bind_string(2, package_name)
         self._set_package_builds.execute()
 
-    func get_package(self, name: string) -> Package:
+    func get_package(self, name: string) -> Package?:
         self._get_package.bind_string(1, name)
 
         if not self._get_package.fetch():
@@ -248,7 +248,7 @@ class Database:
         self._add_package_release.bind_string(3, description)
         self._add_package_release.execute()
 
-    func get_package_release(self, package: Package, version: string) -> Release:
+    func get_package_release(self, package: Package, version: string) -> Release?:
         self._get_package_release.bind_int(1, package.package_id)
         self._get_package_release.bind_string(2, version)
 
@@ -270,7 +270,7 @@ class Database:
         self._modify_mys.bind_int(1, latest_release.release_id)
         self._modify_mys.execute()
 
-    func get_mys(self) -> Mys:
+    func get_mys(self) -> Mys?:
         if not self._get_mys.fetch():
             return None
 
@@ -294,7 +294,7 @@ class Database:
         self._add_mys_release.bind_string(1, version)
         self._add_mys_release.execute()
 
-    func get_mys_release(self, version: string) -> MysRelease:
+    func get_mys_release(self, version: string) -> MysRelease?:
         self._get_mys_release.bind_string(1, version)
 
         if not self._get_mys_release.fetch():

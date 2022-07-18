@@ -928,7 +928,7 @@ class ClientHandlerFiber(Fiber):
 
     func read_post_content(self,
                           max_size: i64,
-                          headers: {string: string}) -> bytes:
+                          headers: {string: string}) -> bytes?:
         content_length = i64(headers["content-length"])
 
         if content_length > max_size:
@@ -955,7 +955,7 @@ class ClientHandlerFiber(Fiber):
 
     func save_post_data_to_file(self,
                                max_size: i64,
-                               headers: {string: string}) -> Path:
+                               headers: {string: string}) -> Path?:
         content = self.read_post_content(max_size, headers)
 
         if content is None:
