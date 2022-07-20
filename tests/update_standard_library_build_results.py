@@ -84,14 +84,13 @@ def build_and_test_package(package, url, jobs):
 
     try:
         proc = subprocess.run(build_command,
-                              stderr=subprocess.STDOUT,
                               capture_output=True,
                               timeout=600)
         build_ok = (proc.returncode == 0)
-        build_output = proc.stdout
+        build_output = proc.stdout + proc.stderr
     except subprocess.TimeoutExpired as error:
         build_ok = False
-        build_output = error.stdout
+        build_output = error.stdout + error.stderr
 
     test_command = ['mys', '-C', package_root, 'test', '-c', '--url', url]
 
@@ -100,14 +99,13 @@ def build_and_test_package(package, url, jobs):
 
     try:
         proc = subprocess.run(test_command,
-                              stderr=subprocess.STDOUT,
                               capture_output=True,
                               timeout=900)
         test_ok = (proc.returncode == 0)
-        test_output = proc.stdout
+        test_output = proc.stdout + proc.stderr
     except subprocess.TimeoutExpired as error:
         test_ok = False
-        test_output = error.stdout
+        test_output = error.stdout + error.stderr
 
     if build_ok and test_ok:
         result = 'yes'
