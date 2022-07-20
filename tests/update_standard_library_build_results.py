@@ -82,25 +82,39 @@ def build_and_test_package(package, url, jobs):
     if jobs is not None:
         build_command += ['-j', jobs]
 
-    build_proc = subprocess.run(build_command,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+    try:
+        proc = subprocess.run(build_command,
+                              stderr=subprocess.STDOUT,
+                              capture_output=True,
+                              timeout=600)
+        build_ok = (proc.returncode == 0)
+        build_output = proc.stdout
+    except subprocess.TimeoutExpired as error:
+        build_ok = False
+        build_output = error.stdout
 
     test_command = ['mys', '-C', package_root, 'test', '-c', '--url', url]
 
     if jobs is not None:
         test_command += ['-j', jobs]
 
-    test_proc = subprocess.run(test_command,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
+    try:
+        proc = subprocess.run(test_command,
+                              stderr=subprocess.STDOUT,
+                              capture_output=True,
+                              timeout=900)
+        test_ok = (proc.returncode == 0)
+        test_output = proc.stdout
+    except subprocess.TimeoutExpired as error:
+        test_ok = False
+        test_output = error.stdout
 
-    if build_proc.returncode == 0 and test_proc.returncode == 0:
+    if build_ok and test_ok:
         result = 'yes'
     else:
         result = 'no'
 
-    if test_proc.returncode == 0:
+    if test_ok:
         with tarfile.open('coverage.tar.gz', 'w:gz') as tar:
             tar.add(f'{package_root}/coverage')
 
@@ -111,9 +125,9 @@ def build_and_test_package(package, url, jobs):
     header = create_log_header(package_root)
     log = header.encode('utf-8')
     log += f'$ {" ".join(build_command)}\n'.encode('utf-8')
-    log += build_proc.stdout
+    log += build_output
     log += f'$ {" ".join(test_command)}\n'.encode('utf-8')
-    log += test_proc.stdout
+    log += test_output
 
     return result, log, coverage
 
