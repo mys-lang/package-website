@@ -162,12 +162,12 @@ class ClientHandlerFiber(Fiber):
     database: Database
     statistics: Statistics
     event: Event
-    client: Client
+    client: Client?
     idle_client_handlers: [ClientHandlerFiber]
     idle_client_handlers_ready: Event
     root_directory: Path
     response_status: Status
-    _buffered_reader: BufferedReader
+    _buffered_reader: BufferedReader?
     _graphql: GraphQL
     _activities: Activities
 
@@ -223,7 +223,7 @@ class ClientHandlerFiber(Fiber):
 
         return self.root_directory.join(path)
 
-    func read_header(self) -> bytes:
+    func read_header(self) -> bytes?:
         return self._buffered_reader.read_until(HEADERS_END)
 
     func handle_request(self, request: Request):
@@ -1128,7 +1128,7 @@ class ClientHandlerFiber(Fiber):
     func write_response(self,
                        status: Status,
                        headers: {string: string} = {},
-                       data: bytes = None):
+                       data: bytes? = None):
         self.response_status = status
         status_string = STATUS_STRINGS[i64(status)]
         self.client.write(f"HTTP/1.1 {status} {status_string}\r\n".to_utf8())

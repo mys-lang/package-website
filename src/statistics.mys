@@ -18,12 +18,12 @@ class Location:
     response_status: Status
 
 class _ClientIpLookupFiber(Fiber):
-    token: string
+    token: string?
     queue: Queue[(string, i64)]
     locations: {string: Location}
     _locations_order: Fifo[string]
 
-    func __init__(self, token: string, locations: {string: Location}):
+    func __init__(self, token: string?, locations: {string: Location}):
         self.token = token
         # i64 instead of Status as generics does only work with common
         # types.
@@ -97,9 +97,9 @@ class Statistics:
     referrers: OrderedCounter
     no_idle_client_handlers: i64
     number_of_graphql_requests: i64
-    activities: Activities
+    activities: Activities?
 
-    func __init__(self, ipinfo_token: string, activities: Activities):
+    func __init__(self, ipinfo_token: string?, activities: Activities?):
         self.activities = activities
         self.start_date_time = LocalDateTime()
         self.requests = OrderedCounter()

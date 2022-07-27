@@ -6,7 +6,7 @@ from fiber import Lock
 class Package:
     package_id: i64
     name: string
-    latest_release: Release
+    latest_release: Release?
     releases: [Release]
     token: string
     number_of_downloads: i64
@@ -18,7 +18,7 @@ class Release:
     description: string
 
 class Mys:
-    latest_release: MysRelease
+    latest_release: MysRelease?
     token: string
 
 class MysRelease:
@@ -277,10 +277,9 @@ class Database:
         latest_release_id = self._get_mys.column_int(1)
         token = self._get_mys.column_string(2)
         self._get_mys.fetch()
+        latest_release: MysRelease? = None
 
-        if latest_release_id == -1:
-            latest_release: MysRelease = None
-        else:
+        if latest_release_id != -1:
             self._get_mys_release_by_id.bind_int(1, latest_release_id)
             self._get_mys_release_by_id.fetch()
             latest_release = MysRelease(
