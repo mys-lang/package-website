@@ -23,8 +23,7 @@ from .graphql import GraphQL
 from .statistics import Statistics
 from .activities import Activities
 
-RE_MYS_VERSION_STANDARD_LIBRARY = (
-    re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
+RE_MYS_VERSION_STANDARD_LIBRARY = re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html"
 RE_MYS_VERSION_ACTIVITY = re"^/\d+\.\d+\.\d+[\w-]*/activity.html"
 RE_MYS_VERSION_STATISTICS = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
 RE_MYS_VERSION_WORLD_SVG = re"^/\d+\.\d+\.\d+[\w-]*/_images/world.svg"
