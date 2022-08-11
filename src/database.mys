@@ -232,7 +232,7 @@ class Database:
         return package
 
     func get_packages(self) -> [string]:
-        packages = []
+        packages: [string] = []
 
         while self._get_packages.fetch():
             packages.append(self._get_packages.column_string(0))
@@ -316,7 +316,7 @@ class Database:
 
     func get_dependents(self, package_name: string) -> [string]:
         self._get_dependents.bind_string(1, package_name)
-        dependents = []
+        dependents: [string] = []
 
         while self._get_dependents.fetch():
             dependents.append(self._get_dependents.column_string(0))
@@ -333,7 +333,7 @@ class Database:
         self._add_activity.execute()
 
     func get_activities(self) -> [(string, string, string)]:
-        activities = []
+        activities: [(string, string, string)] = []
 
         while self._get_activities.fetch():
             activities.append((self._get_activities.column_string(0),

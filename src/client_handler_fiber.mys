@@ -23,24 +23,25 @@ from .graphql import GraphQL
 from .statistics import Statistics
 from .activities import Activities
 
-RE_MYS_VERSION_STANDARD_LIBRARY = re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html"
-RE_MYS_VERSION_ACTIVITY = re"^/\d+\.\d+\.\d+[\w-]*/activity.html"
-RE_MYS_VERSION_STATISTICS = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
-RE_MYS_VERSION_WORLD_SVG = re"^/\d+\.\d+\.\d+[\w-]*/_images/world.svg"
-RE_MYS_VERSION = re"^/\d+\.\d+\.\d+[\w-]*/"
-RE_PACKAGE_TAR_GZ = re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$"
-RE_PACKAGE_LATEST_TAR_GZ = re"^/package/([\w-]+)-latest.tar.gz$"
-RE_PACKAGE_OPERATIONS = re"^/package/[\w-]+$"
-RE_PACKAGE_LATEST = re"^/package/[\w-]+/latest/"
-RE_MYS_TAR_GZ = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
-RE_PACKAGE_NAME = re"^[\w\-]+$"
-RE_STANDARD_LIBRARY_BUILD_LOG = re"^/standard-library/([\w-]+)/build-log.html$"
-RE_STANDARD_LIBRARY_COVERAGE_TAR_GZ = re"^/standard-library/([\w-]+)/coverage.tar.gz$"
-RE_STANDARD_LIBRARY_COVERAGE = re"^/standard-library/([\w-]+)/coverage/"
-RE_STANDARD_LIBRARY_BUILD_RESULT = re"^/standard-library/([\w-]+)/build-result.txt$"
-RE_STANDARD_LIBRARY_DEPENDENTS = re"^/standard-library/([\w-]+)/dependents.txt$"
+RE_MYS_VERSION_STANDARD_LIBRARY: regex = (
+    re"^/\d+\.\d+\.\d+[\w-]*/standard-library.html")
+RE_MYS_VERSION_ACTIVITY: regex = re"^/\d+\.\d+\.\d+[\w-]*/activity.html"
+RE_MYS_VERSION_STATISTICS: regex = re"^/\d+\.\d+\.\d+[\w-]*/statistics.html"
+RE_MYS_VERSION_WORLD_SVG: regex = re"^/\d+\.\d+\.\d+[\w-]*/_images/world.svg"
+RE_MYS_VERSION: regex = re"^/\d+\.\d+\.\d+[\w-]*/"
+RE_PACKAGE_TAR_GZ: regex = re"^/package/([\w-]+)-\d+\.\d+\.\d+[\w-]*.tar.gz$"
+RE_PACKAGE_LATEST_TAR_GZ: regex = re"^/package/([\w-]+)-latest.tar.gz$"
+RE_PACKAGE_OPERATIONS: regex = re"^/package/[\w-]+$"
+RE_PACKAGE_LATEST: regex = re"^/package/[\w-]+/latest/"
+RE_MYS_TAR_GZ: regex = re"^/mys-\d+\.\d+\.\d+[\w-]*.tar.gz$"
+RE_PACKAGE_NAME: regex = re"^[\w\-]+$"
+RE_STANDARD_LIBRARY_BUILD_LOG: regex = re"^/standard-library/([\w-]+)/build-log.html$"
+RE_STANDARD_LIBRARY_COVERAGE_TAR_GZ: regex = re"^/standard-library/([\w-]+)/coverage.tar.gz$"
+RE_STANDARD_LIBRARY_COVERAGE: regex = re"^/standard-library/([\w-]+)/coverage/"
+RE_STANDARD_LIBRARY_BUILD_RESULT: regex = re"^/standard-library/([\w-]+)/build-result.txt$"
+RE_STANDARD_LIBRARY_DEPENDENTS: regex = re"^/standard-library/([\w-]+)/dependents.txt$"
 
-FILE_SUFFIX_TO_CONTENT_TYPE = {
+FILE_SUFFIX_TO_CONTENT_TYPE: {string: string} = {
     ".html": "text/html",
     ".css": "text/css",
     ".js": "application/javascript",
@@ -50,9 +51,9 @@ FILE_SUFFIX_TO_CONTENT_TYPE = {
     ".json": "application/json",
 }
 
-HEADERS_END = b"\r\n\r\n"
+HEADERS_END: bytes = b"\r\n\r\n"
 
-STATUS_STRINGS = {
+STATUS_STRINGS: {i64: string} = {
     i64(Status.Continue): "Continue",
     i64(Status.Ok): "OK",
     i64(Status.Found): "Found",
@@ -113,7 +114,7 @@ func create_request_table(name: string, requests: {string: i64}) -> string:
 
     return builder.to_string()
 
-SORT_TABLE_JS = """\
+SORT_TABLE_JS: string = """\
 <script>
 function sortTable(n, element) {
   var table, rows, switching, i, x, y;

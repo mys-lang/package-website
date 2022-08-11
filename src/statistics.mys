@@ -9,8 +9,8 @@ from collections.fifo import Fifo
 from . import Status
 from .activities import Activities
 
-RE_LOCATION = re"^([\d.-]+),([\d.-]+)$"
-RE_BOT = re"bot"i
+RE_LOCATION: regex = re"^([\d.-]+),([\d.-]+)$"
+RE_BOT: regex = re"bot"i
 
 class Location:
     latitude: f64
